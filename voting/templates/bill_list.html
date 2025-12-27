@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Bills & Votes - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2>Legislative Bills</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if user.is_authenticated %}
+            <a href="{% url 'voting:create_bill' %}" class="btn btn-danger">Submit New Bill</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Chamber</label>
+                <select name="chamber" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Chambers</option>
+                    {% for value, label in chamber_choices %}
+                    <option value="{{ value }}" {% if chamber_filter == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <a href="{% url 'voting:bill_list' %}" class="btn btn-secondary">Clear Filters</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<hr>
+
+<!-- Bills List -->
+<div class="row">
+    <div class="col-12">
+        {% if page_obj %}
+            <div class="list-group">
+                {% for bill in page_obj %}
+                <a href="{% url 'voting:bill_detail' bill.id %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">
+                            <span class="badge bg-primary">{{ bill.bill_number }}</span>
+                            {{ bill.title }}
+                        </h5>
+                        <small>
+                            {% if bill.status == 'ROYAL_ASSENT' %}
+                                <span class="badge bg-success">✓ Passed</span>
+                            {% elif bill.status == 'FAILED' %}
+                                <span class="badge bg-danger">✗ Failed</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">{{ bill.get_status_display }}</span>
+                            {% endif %}
+                        </small>
+                    </div>
+                    <p class="mb-1 text-muted">{{ bill.summary|truncatewords:30 }}</p>
+                    <small class="text-muted">
+                        Sponsored by <strong>{{ bill.sponsor.username }}</strong> • 
+                        {{ bill.get_chamber_display }} •
+                        {% if bill.current_vote %}
+                            <span class="text-danger">🗳️ Vote Open</span>
+                        {% else %}
+                            {{ bill.created_at|date:"M d, Y" }}
+                        {% endif %}
+                    </small>
+                </a>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if status_filter %}&status={{ status_filter }}{% endif %}{% if chamber_filter %}&chamber={{ chamber_filter }}{% endif %}">First</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if chamber_filter %}&chamber={{ chamber_filter }}{% endif %}">Previous</a>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if chamber_filter %}&chamber={{ chamber_filter }}{% endif %}">Next</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if chamber_filter %}&chamber={{ chamber_filter }}{% endif %}">Last</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info">
+                No bills found. Be the first to submit legislation!
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

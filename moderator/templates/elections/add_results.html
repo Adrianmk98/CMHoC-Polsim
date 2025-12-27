@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Results - {{ election.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'moderator:dashboard' %}">Moderator</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'elections:election_detail' election.id %}">{{ election.name }}</a></li>
+                <li class="breadcrumb-item active">Add Results</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h3>Add Results: {{ election.name }}</h3>
+                <p class="mb-0">{{ election.election_date|date:"F d, Y" }}</p>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Progress:</strong> 
+                        {{ results_by_riding|length }} / {{ ridings|length }} ridings completed
+                    </div>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-success" onclick="saveAllResults()">
+                            💾 Save All Results
+                        </button>
+                        <a href="{% url 'moderator:complete_election' election.id %}" class="btn btn-warning">
+                            ✓ Mark as Completed
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Entry Table -->
+<div class="card">
+    <div class="card-header">
+        <h4>Quick Results Entry</h4>
+        <p class="mb-0 text-muted">Enter winners for each riding. You can add detailed candidate data later.</p>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="resultsTable">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">#</th>
+                        <th style="width: 25%;">Riding</th>
+                        <th style="width: 25%;">Winner</th>
+                        <th style="width: 20%;">Party</th>
+                        <th style="width: 15%;">Total Votes</th>
+                        <th style="width: 10%;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for riding in ridings %}
+                    <tr data-riding-id="{{ riding.id }}" {% if riding.id in results_by_riding %}class="table-success"{% endif %}>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <strong>{{ riding.name }}</strong><br>
+                            <small class="text-muted">{{ riding.get_province_display }}</small>
+                        </td>
+                        <td>
+                            <select class="form-select form-select-sm winner-select" data-riding="{{ riding.id }}">
+                                <option value="">Select Winner...</option>
+                                {% for user in users %}
+                                    <option value="{{ user.id }}" 
+                                            data-party="{{ user.party.id|default:'' }}"
+                                            {% if riding.id in results_by_riding and results_by_riding|get_item:riding.id|attr:'winner' == user %}selected{% endif %}>
+                                        {{ user.user.username }}{% if user.party %} ({{ user.party.name }}){% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td class="party-display">
+                            {% if riding.id in results_by_riding and results_by_riding|get_item:riding.id|attr:'winning_party' %}
+                                <span class="badge" style="background-color: {{ results_by_riding|get_item:riding.id|attr:'winning_party'|attr:'color' }};">
+                                    {{ results_by_riding|get_item:riding.id|attr:'winning_party'|attr:'name' }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm votes-input" 
+                                   value="{% if riding.id in results_by_riding %}{{ results_by_riding|get_item:riding.id|attr:'total_votes_cast' }}{% endif %}"
+                                   placeholder="0">
+                        </td>
+                        <td>
+                            {% if riding.id in results_by_riding %}
+                                <a href="{% url 'moderator:add_candidates' results_by_riding|get_item:riding.id|attr:'id' %}" 
+                                   class="btn btn-sm btn-outline-primary" title="Add Candidates">
+                                    👥
+                                </a>
+                            {% else %}
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="Save result first">
+                                    👥
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 mb-5">
+    <button type="button" class="btn btn-success btn-lg" onclick="saveAllResults()">
+        💾 Save All Results
+    </button>
+    <a href="{% url 'moderator:complete_election' election.id %}" class="btn btn-warning btn-lg">
+        ✓ Complete Election
+    </a>
+    <a href="{% url 'moderator:dashboard' %}" class="btn btn-secondary btn-lg">
+        Back to Dashboard
+    </a>
+</div>
+
+<script>
+// Auto-update party when winner is selected
+document.querySelectorAll('.winner-select').forEach(select => {
+    select.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const partyId = selectedOption.getAttribute('data-party');
+        const row = this.closest('tr');
+        const partyDisplay = row.querySelector('.party-display');
+        
+        if (partyId) {
+            // You could fetch party info via AJAX, but for simplicity, just show selected
+            partyDisplay.innerHTML = '<span class="badge bg-secondary">Auto-filled</span>';
+        } else {
+            partyDisplay.innerHTML = '<span class="text-muted">-</span>';
+        }
+    });
+});
+
+function saveAllResults() {
+    const results = [];
+    const rows = document.querySelectorAll('#resultsTable tbody tr');
+    
+    rows.forEach(row => {
+        const ridingId = row.getAttribute('data-riding-id');
+        const winnerSelect = row.querySelector('.winner-select');
+        const votesInput = row.querySelector('.votes-input');
+        
+        const winnerId = winnerSelect.value;
+        const votes = votesInput.value;
+        
+        if (winnerId) {
+            results.push({
+                riding_id: ridingId,
+                winner_id: winnerId,
+                total_votes: parseInt(votes) || 0,
+                is_acclaimed: false
+            });
+        }
+    });
+    
+    if (results.length === 0) {
+        alert('No results to save. Please select at least one winner.');
+        return;
+    }
+    
+    // Save via AJAX
+    fetch('{% url "elections:bulk_add_results" election.id %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({results: results})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Success! Created: ${data.created}, Updated: ${data.updated}`);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error saving results: ' + error);
+    });
+}
+
+// Save indicator
+let unsavedChanges = false;
+document.querySelectorAll('.winner-select, .votes-input').forEach(input => {
+    input.addEventListener('change', () => {
+        unsavedChanges = true;
+    });
+});
+
+window.addEventListener('beforeunload', (e) => {
+    if (unsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+</script>
+
+{% endblock %}

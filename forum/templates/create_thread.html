@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}New Thread - {{ category.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'forum_index' %}">Forum</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'category_detail' category.id %}">{{ category.name }}</a></li>
+                <li class="breadcrumb-item active">New Thread</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4>Create New Thread in {{ category.name }}</h4>
+            </div>
+            <div class="card-body">
+               <form method="post">
+    {% csrf_token %}
+    
+    <div class="mb-3">
+        <label for="{{ thread_form.title.id_for_label }}" class="form-label">Thread Title</label>
+        {{ thread_form.title }}
+        {% if thread_form.title.errors %}
+            <div class="text-danger">{{ thread_form.title.errors }}</div>
+        {% endif %}
+    </div>
+
+    <!-- ADD THIS SECTION FOR FLAIR -->
+    <div class="mb-3">
+        <label for="{{ thread_form.flair.id_for_label }}" class="form-label">Flair (Optional)</label>
+        {{ thread_form.flair }}
+        {% if thread_form.flair.errors %}
+            <div class="text-danger">{{ thread_form.flair.errors }}</div>
+        {% endif %}
+        <small class="text-muted">Select a flair to categorize your thread</small>
+    </div>
+
+    <div class="mb-3">
+        <label for="{{ post_form.content.id_for_label }}" class="form-label">First Post</label>
+        {{ post_form.content }}
+        {% if post_form.content.errors %}
+            <div class="text-danger">{{ post_form.content.errors }}</div>
+        {% endif %}
+    </div>
+
+    <button type="submit" class="btn btn-danger">Create Thread</button>
+    <a href="{% url 'category_detail' category.id %}" class="btn btn-secondary">Cancel</a>
+</form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

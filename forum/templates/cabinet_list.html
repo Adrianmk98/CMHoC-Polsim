@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}Cabinet - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2>🏛️ The Cabinet</h2>
+                <p class="lead mb-0">The Ministry and Government of Canada</p>
+            </div>
+            {% if user.is_authenticated and current_cabinet and user == current_cabinet.prime_minister %}
+            <div>
+                <a href="{% url 'manage_cabinet' %}" class="btn btn-danger btn-lg">
+                    ⚙️ Manage Cabinet
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if current_cabinet %}
+<div class="card mb-4">
+    <div class="card-header bg-danger text-white">
+        <h3 class="mb-0">{{ current_cabinet.name }}</h3>
+        <p class="mb-0">
+            Prime Minister: <strong>{{ current_cabinet.prime_minister.username }}</strong>
+            {% if current_cabinet.government_party %}
+                <span class="party-badge ms-2" style="background-color: {{ current_cabinet.government_party.color }};">
+                    {{ current_cabinet.government_party.get_name_display }}
+                </span>
+            {% endif %}
+        </p>
+    </div>
+    <div class="card-body">
+        {% if current_cabinet.description %}
+            <p>{{ current_cabinet.description }}</p>
+        {% endif %}
+        <p class="text-muted mb-0">
+            <small>
+                Formed: {{ current_cabinet.start_date|date:"F d, Y" }} 
+                ({{ current_cabinet.duration }})
+                • {{ current_cabinet.member_count }} members
+            </small>
+        </p>
+    </div>
+</div>
+
+<!-- Current Cabinet Positions -->
+{% if current_positions %}
+    {% for position_type, positions in current_positions.items %}
+    <div class="card mb-3">
+        <div class="card-header {% if position_type == 'Prime Minister' %}bg-primary{% else %}bg-light{% endif %} {% if position_type == 'Prime Minister' %}text-white{% endif %}">
+            <h5 class="mb-0">{{ position_type }}</h5>
+        </div>
+        <div class="list-group list-group-flush">
+            {% for position in positions %}
+            <div class="list-group-item">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h6 class="mb-1">{{ position.title }}</h6>
+                        <a href="{% url 'user_profile' position.user_profile.user.username %}" class="text-decoration-none">
+                            <strong>{{ position.user_profile.user.username }}</strong>
+                        </a>
+                        {% if position.user_profile.party %}
+                            <span class="party-badge ms-2" style="background-color: {{ position.user_profile.party.color }};">
+                                {{ position.user_profile.party.name }}
+                            </span>
+                        {% endif %}
+                        {% if position.user_profile.riding %}
+                            <br><small class="text-muted">MP for {{ position.user_profile.get_riding_display }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <span class="badge bg-success">Appointed</span>
+                        <br>
+                        <small class="text-muted">{{ position.start_date|date:"M d, Y" }} ({{ position.duration }})</small>
+                        <br>
+                        <a href="{% url 'portfolio_history' position.portfolio %}" class="btn btn-sm btn-outline-secondary mt-1">
+                            View Portfolio History
+                        </a>
+                    </div>
+                </div>
+                {% if position.notes %}
+                    <p class="mb-0 mt-2 text-muted"><small>{{ position.notes }}</small></p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="alert alert-info">
+        No cabinet positions assigned yet.
+    </div>
+{% endif %}
+
+{% else %}
+<div class="alert alert-warning">
+    No current cabinet formed. Please create one in the admin panel.
+</div>
+{% endif %}
+
+<hr>
+
+<!-- Past Cabinets -->
+{% if past_cabinets %}
+<div class="card">
+    <div class="card-header">
+        <h4>📜 Cabinet History</h4>
+    </div>
+    <div class="list-group list-group-flush">
+        {% for cabinet in past_cabinets %}
+        <a href="{% url 'cabinet_detail' cabinet.id %}" class="list-group-item list-group-item-action">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="mb-1">{{ cabinet.name }}</h6>
+                    <p class="mb-1">
+                        <strong>PM:</strong> {{ cabinet.prime_minister.username }}
+                        {% if cabinet.government_party %}
+                            <span class="party-badge ms-2" style="background-color: {{ cabinet.government_party.color }};">
+                                {{ cabinet.government_party.get_name_display }}
+                            </span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted">
+                        {{ cabinet.start_date|date:"M Y" }} - 
+                        {% if cabinet.end_date %}
+                            {{ cabinet.end_date|date:"M Y" }}
+                        {% else %}
+                            Present
+                        {% endif %}
+                        <br>
+                        ({{ cabinet.duration }})
+                    </small>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<style>
+.party-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.85em;
+}
+</style>
+{% endblock %}

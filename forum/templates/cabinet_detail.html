@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ cabinet.name }} - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'forum_index' %}">Forum</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'cabinet_list' %}">Cabinet</a></li>
+                <li class="breadcrumb-item active">{{ cabinet.name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Cabinet Header -->
+        <div class="card mb-3">
+            <div class="card-header {% if cabinet.is_current %}bg-danger{% else %}bg-secondary{% endif %} text-white">
+                <h2 class="mb-0">
+                    {{ cabinet.name }}
+                    {% if cabinet.is_current %}
+                        <span class="badge bg-success">Current</span>
+                    {% endif %}
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h5>Prime Minister</h5>
+                        <a href="{% url 'user_profile' cabinet.prime_minister.username %}">
+                            <strong>{{ cabinet.prime_minister.username }}</strong>
+                        </a>
+                        {% if cabinet.prime_minister.profile.party %}
+                            <br>
+                            <span class="party-badge mt-2" style="background-color: {{ cabinet.prime_minister.profile.party.color }};">
+                                {{ cabinet.prime_minister.profile.party.get_name_display }}
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Government Party</h5>
+                        {% if cabinet.government_party %}
+                            <span class="party-badge" style="background-color: {{ cabinet.government_party.color }}; font-size: 1.1em;">
+                                {{ cabinet.government_party.get_name_display }}
+                            </span>
+                        {% else %}
+                            <p>Not specified</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if cabinet.description %}
+                    <hr>
+                    <p>{{ cabinet.description }}</p>
+                {% endif %}
+
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Formed:</strong> {{ cabinet.start_date|date:"F d, Y" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Duration:</strong> {{ cabinet.duration }}</p>
+                    </div>
+                </div>
+                {% if cabinet.end_date %}
+                    <p><strong>Ended:</strong> {{ cabinet.end_date|date:"F d, Y" }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Cabinet Positions -->
+        {% if grouped_positions %}
+            {% for position_type, positions in grouped_positions.items %}
+            <div class="card mb-3">
+                <div class="card-header {% if position_type == 'Prime Minister' %}bg-primary text-white{% else %}bg-light{% endif %}">
+                    <h5 class="mb-0">{{ position_type }}</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for position in positions %}
+                    <div class="list-group-item">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h6 class="mb-1">{{ position.title }}</h6>
+                                <a href="{% url 'user_profile' position.user_profile.user.username %}">
+                                    <strong>{{ position.user_profile.user.username }}</strong>
+                                </a>
+                                {% if position.user_profile.party %}
+                                    <span class="party-badge ms-2" style="background-color: {{ position.user_profile.party.color }};">
+                                        {{ position.user_profile.party.name }}
+                                    </span>
+                                {% endif %}
+                                {% if position.user_profile.riding %}
+                                    <br><small class="text-muted">MP for {{ position.user_profile.get_riding_display }}</small>
+                                {% endif %}
+                                {% if position.notes %}
+                                    <br><small class="text-muted">{{ position.notes }}</small>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <small class="text-muted">
+                                    {{ position.start_date|date:"M d, Y" }} - 
+                                    {% if position.end_date %}
+                                        {{ position.end_date|date:"M d, Y" }}
+                                    {% else %}
+                                        Present
+                                    {% endif %}
+                                    <br>
+                                    <em>({{ position.duration }})</em>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info">
+                No positions recorded for this cabinet.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6>Quick Facts</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Name:</strong> {{ cabinet.name }}</p>
+                <p><strong>Prime Minister:</strong> {{ cabinet.prime_minister.username }}</p>
+                {% if cabinet.government_party %}
+                    <p><strong>Party:</strong> {{ cabinet.government_party.get_name_display }}</p>
+                {% endif %}
+                <p><strong>Formed:</strong> {{ cabinet.start_date|date:"F d, Y" }}</p>
+                {% if cabinet.end_date %}
+                    <p><strong>Ended:</strong> {{ cabinet.end_date|date:"F d, Y" }}</p>
+                {% endif %}
+                <p><strong>Duration:</strong> {{ cabinet.duration }}</p>
+                <p><strong>Members:</strong> {{ all_positions.count }}</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6>Actions</h6>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'cabinet_list' %}" class="btn btn-outline-primary w-100 mb-2">
+                    Back to Cabinet
+                </a>
+                {% if user.is_staff %}
+                    <a href="/admin/forum/cabinet/{{ cabinet.id }}/change/" class="btn btn-outline-secondary w-100">
+                        Edit in Admin
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.party-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.85em;
+}
+</style>
+{% endblock %}

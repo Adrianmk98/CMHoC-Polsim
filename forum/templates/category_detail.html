@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ category.name }} - Canadian PolSim{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2>{{ category.name }}</h2>
+        <p class="text-muted">{{ category.description }}</p>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if user.is_authenticated %}
+            <a href="{% url 'create_thread' category.id %}" class="btn btn-danger">New Thread</a>
+        {% else %}
+            <a href="{% url 'login' %}" class="btn btn-outline-secondary">Login to Post</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Flair Filter -->
+{% if available_flairs %}
+<div class="mb-3">
+    <form method="get" class="row g-2">
+        <div class="col-auto">
+            <label class="col-form-label">Filter by Flair:</label>
+        </div>
+        <div class="col-auto">
+            <select name="flair" class="form-select" onchange="this.form.submit()">
+                <option value="">All Flairs</option>
+                {% for flair in available_flairs %}
+                <option value="{{ flair.id }}" {% if flair.id|stringformat:"s" == flair_filter %}selected{% endif %}>
+                    {{ flair.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% if flair_filter %}
+        <div class="col-auto">
+            <a href="{% url 'category_detail' category.id %}" class="btn btn-secondary">Clear Filter</a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endif %}
+
+<hr>
+
+<div class="row">
+    <div class="col-12">
+        {% if page_obj %}
+            <div class="list-group">
+                {% for thread in page_obj %}
+                <a href="{% url 'thread_detail' thread.id %}" class="list-group-item list-group-item-action thread-row">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">
+                            {% if thread.is_pinned %}📌 {% endif %}
+                            {% if thread.is_locked %}🔒 {% endif %}
+                            
+                            <!-- FLAIR BADGE - ADD THIS -->
+                            {% if thread.flair %}
+                                <span class="badge" style="background-color: {{ thread.flair.color }}; color: white;">
+                                    {{ thread.flair.name }}
+                                </span>
+                            {% endif %}
+                            
+                            {{ thread.title }}
+                        </h5>
+                        <small>{{ thread.views }} views</small>
+                    </div>
+                    <p class="mb-1">
+                        <small class="text-muted">
+                            Started by <strong>{{ thread.author.username }}</strong>
+                            {% if thread.author.profile.party %}
+                                <span class="party-badge" style="background-color: {{ thread.author.profile.party.color }};">
+                                    {{ thread.author.profile.party.name }}
+                                </span>
+                            {% endif %}
+                        </small>
+                    </p>
+                    <small class="text-muted">
+                        {{ thread.post_count }} replies • Last activity: {{ thread.updated_at|timesince }} ago
+                    </small>
+                </a>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if flair_filter %}&flair={{ flair_filter }}{% endif %}">First</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if flair_filter %}&flair={{ flair_filter }}{% endif %}">Previous</a>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if flair_filter %}&flair={{ flair_filter }}{% endif %}">Next</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if flair_filter %}&flair={{ flair_filter }}{% endif %}">Last</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info">
+                No threads in this category yet. Be the first to start a discussion!
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

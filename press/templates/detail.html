@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ press_release.title }} - Press Release{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'press:list' %}">Press Releases</a></li>
+                <li class="breadcrumb-item active">{{ press_release.title|truncatewords:5 }}</li>
+            </ol>
+        </nav>
+
+        <!-- Main Press Release -->
+        <article class="card mb-4">
+            <div class="card-body">
+                <h1 class="mb-3">{{ press_release.title }}</h1>
+                
+                <!-- Metadata -->
+                <div class="border-bottom pb-3 mb-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <p class="mb-1">
+                                <strong>By:</strong> <a href="{% url 'press:by_author' press_release.author.username %}">{{ press_release.author.username }}</a>
+                                {% if press_release.party %}
+                                    | <a href="{% url 'press:by_party' press_release.party.id %}">
+                                        <span class="badge" style="background-color: {{ press_release.party.color }};">
+                                            {{ press_release.party.get_name_display }}
+                                        </span>
+                                    </a>
+                                {% endif %}
+                            </p>
+                            <p class="text-muted small mb-1">
+                                <strong>Published:</strong> {{ press_release.published_at|date:"F d, Y g:i A" }}
+                                {% if press_release.updated_at != press_release.created_at %}
+                                    | <strong>Updated:</strong> {{ press_release.updated_at|date:"F d, Y g:i A" }}
+                                {% endif %}
+                            </p>
+                            <p class="mb-0">
+                                <span class="badge bg-secondary">{{ press_release.get_category_display }}</span>
+                                | 👁️ {{ press_release.view_count }} views
+                                {% if press_release.is_featured %}
+                                    | <span class="badge bg-primary">Featured</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        {% if user == press_release.author or user.is_staff %}
+                        <div class="btn-group">
+                            <a href="{% url 'press:edit' press_release.slug %}" class="btn btn-sm btn-outline-primary">
+                                ✏️ Edit
+                            </a>
+                            <a href="{% url 'press:delete' press_release.slug %}" class="btn btn-sm btn-outline-danger">
+                                🗑️ Delete
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Tags -->
+                {% if press_release.get_tags_list %}
+                <div class="mb-3">
+                    {% for tag in press_release.get_tags_list %}
+                        <a href="{% url 'press:list' %}?tag={{ tag }}" class="badge bg-light text-dark me-1">#{{ tag }}</a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Content -->
+                <div class="press-content">
+                    {{ press_release.content|safe }}
+                </div>
+            </div>
+        </article>
+
+        <!-- Comments Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>💬 Comments ({{ comments.count }})</h5>
+            </div>
+            <div class="card-body">
+                {% if user.is_authenticated %}
+                <form method="post" class="mb-4">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {{ comment_form.content }}
+                    </div>
+                    <button type="submit" class="btn btn-primary">Post Comment</button>
+                </form>
+                {% else %}
+                <div class="alert alert-info">
+                    <a href="{% url 'login' %}?next={{ request.path }}">Login</a> to comment on this press release.
+                </div>
+                {% endif %}
+
+                <hr>
+
+                <!-- Comments List -->
+                {% for comment in comments %}
+                <div class="mb-3 pb-3 border-bottom">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ comment.author.username }}</strong>
+                        <small class="text-muted">{{ comment.created_at|date:"F d, Y g:i A" }}</small>
+                    </div>
+                    <p class="mb-0 mt-2">{{ comment.content|linebreaks }}</p>
+                </div>
+                {% empty %}
+                <p class="text-muted">No comments yet. Be the first to comment!</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Related Press Releases -->
+        {% if related %}
+        <div class="card">
+            <div class="card-header">
+                <h5>Related Press Releases</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for pr in related %}
+                <a href="{% url 'press:detail' pr.slug %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>{{ pr.title }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                {{ pr.author.username }} • {{ pr.published_at|date:"F d, Y" }}
+                            </small>
+                        </div>
+                        {% if pr.party %}
+                            <span class="badge" style="background-color: {{ pr.party.color }}; height: fit-content;">
+                                {{ pr.party.name }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6>About This Release</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Category:</strong> {{ press_release.get_category_display }}</p>
+                <p><strong>Author:</strong> {{ press_release.author.username }}</p>
+                {% if press_release.party %}
+                    <p><strong>Party:</strong> {{ press_release.party.get_name_display }}</p>
+                {% endif %}
+                <p><strong>Published:</strong> {{ press_release.published_at|date:"F d, Y" }}</p>
+                <p class="mb-0"><strong>Views:</strong> {{ press_release.view_count }}</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6>Share</h6>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="copyLink()">
+                    📋 Copy Link
+                </button>
+                <a href="https://twitter.com/intent/tweet?url={{ request.build_absolute_uri }}&text={{ press_release.title }}" 
+                   target="_blank" class="btn btn-sm btn-outline-info w-100 mb-2">
+                    🐦 Share on Twitter
+                </a>
+                <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri }}" 
+                   target="_blank" class="btn btn-sm btn-outline-primary w-100">
+                    📘 Share on Facebook
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyLink() {
+    navigator.clipboard.writeText(window.location.href);
+    alert('Link copied to clipboard!');
+}
+</script>
+
+<style>
+.press-content {
+    font-size: 1.1rem;
+    line-height: 1.8;
+}
+
+.press-content img {
+    max-width: 100%;
+    height: auto;
+    margin: 20px 0;
+    border-radius: 8px;
+}
+
+.press-content h1,
+.press-content h2,
+.press-content h3 {
+    margin-top: 30px;
+    margin-bottom: 15px;
+}
+
+.press-content blockquote {
+    border-left: 4px solid #0d6efd;
+    padding-left: 20px;
+    margin: 20px 0;
+    font-style: italic;
+    color: #666;
+}
+
+.press-content ul,
+.press-content ol {
+    margin: 15px 0;
+    padding-left: 30px;
+}
+
+.press-content pre {
+    background: #f5f5f5;
+    padding: 15px;
+    border-radius: 5px;
+    overflow-x: auto;
+}
+</style>
+
+{% endblock %}

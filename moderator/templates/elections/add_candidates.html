@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Candidates - {{ riding_result.riding.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'moderator:dashboard' %}">Moderator</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'elections:election_detail' riding_result.election.id %}">{{ riding_result.election.name }}</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'moderator:add_results' riding_result.election.id %}">Add Results</a></li>
+                <li class="breadcrumb-item active">{{ riding_result.riding.name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h4>Add Candidates: {{ riding_result.riding.name }}</h4>
+                <p class="mb-0">{{ riding_result.election.name }}</p>
+            </div>
+            <div class="card-body">
+                <p><strong>Winner:</strong> 
+                    {% if riding_result.winner %}
+                        {{ riding_result.winner.user.username }}
+                        {% if riding_result.winning_party %}
+                            ({{ riding_result.winning_party.get_name_display }})
+                        {% endif %}
+                    {% else %}
+                        <span class="text-muted">Not set</span>
+                    {% endif %}
+                </p>
+                <p><strong>Total Votes:</strong> {{ riding_result.total_votes_cast|intcomma }}</p>
+            </div>
+        </div>
+
+        <!-- Existing Candidates -->
+        {% if existing_candidates %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>Current Candidates ({{ existing_candidates.count }})</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Candidate</th>
+                            <th>Party</th>
+                            <th>Votes</th>
+                            <th>%</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for candidate in existing_candidates %}
+                        <tr {% if candidate.is_winner %}class="table-success"{% endif %}>
+                            <td>
+                                {{ candidate.candidate.user.username }}
+                                {% if candidate.is_incumbent %}
+                                    <span class="badge bg-secondary">Incumbent</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if candidate.party %}
+                                    <span class="badge" style="background-color: {{ candidate.party.color }};">
+                                        {{ candidate.party.name }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Independent</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ candidate.votes|intcomma }}</td>
+                            <td>
+                                {% if candidate.vote_percentage %}
+                                    {{ candidate.vote_percentage|floatformat:1 }}%
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if candidate.is_winner %}
+                                    <span class="badge bg-success">Winner</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Add New Candidate -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Add New Candidate</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Candidate *</label>
+                        <select name="candidate_id" class="form-select" required id="candidate_select">
+                            <option value="">Select Candidate...</option>
+                            {% for candidate in all_candidates %}
+                                <option value="{{ candidate.id }}" data-party="{{ candidate.party.id|default:'' }}">
+                                    {{ candidate.user.username }}
+                                    {% if candidate.party %}({{ candidate.party.name }}){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Party *</label>
+                        <select name="party_id" class="form-select" required id="party_select">
+                            <option value="">Select Party...</option>
+                            {% for party in parties %}
+                                <option value="{{ party.id }}">{{ party.get_name_display }}</option>
+                            {% endfor %}
+                            <option value="">Independent</option>
+                        </select>
+                        <small class="text-muted">Auto-filled from candidate's profile if available</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Votes Received *</label>
+                        <input type="number" name="votes" class="form-control" required placeholder="0" min="0">
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="is_incumbent" class="form-check-input" id="incumbent">
+                        <label class="form-check-label" for="incumbent">
+                            Was sitting MP (Incumbent)
+                        </label>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            Add Candidate
+                        </button>
+                        <a href="{% url 'moderator:add_results' riding_result.election.id %}" class="btn btn-secondary">
+                            Done
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6>Tips</h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>Add ALL candidates who ran</li>
+                    <li>Make sure vote totals add up</li>
+                    <li>Mark incumbent if they were sitting MP</li>
+                    <li>Winner is auto-detected from riding result</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6>Quick Stats</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Total Votes:</strong> {{ riding_result.total_votes_cast|intcomma }}</p>
+                <p><strong>Candidates Added:</strong> {{ existing_candidates.count }}</p>
+                <p><strong>Votes Accounted:</strong>
+                    {% widthratio existing_candidates|length 1 1 as candidate_count %}
+                    {{ candidate_count }} / {{ riding_result.total_votes_cast }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-fill party when candidate is selected
+document.getElementById('candidate_select').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const partyId = selectedOption.getAttribute('data-party');
+    const partySelect = document.getElementById('party_select');
+    
+    if (partyId) {
+        partySelect.value = partyId;
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Submit New Bill{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'voting:bill_list' %}">Bills</a></li>
+                <li class="breadcrumb-item active">Submit New Bill</li>
+            </ol>
+        </nav>
+
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3>Submit New Legislative Bill</h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Use this form to submit a new bill for consideration. All fields marked with * are required.
+                </p>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.bill_number.id_for_label }}" class="form-label">Bill Number *</label>
+                            {{ form.bill_number }}
+                            <small class="form-text text-muted">Format: C-### for Commons bills, S-### for Senate bills</small>
+                            {% if form.bill_number.errors %}
+                                <div class="text-danger">{{ form.bill_number.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.chamber.id_for_label }}" class="form-label">Chamber *</label>
+                            {{ form.chamber }}
+                            {% if form.chamber.errors %}
+                                <div class="text-danger">{{ form.chamber.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.title.id_for_label }}" class="form-label">Full Title *</label>
+                        {{ form.title }}
+                        <small class="form-text text-muted">The complete official title of the bill</small>
+                        {% if form.title.errors %}
+                            <div class="text-danger">{{ form.title.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.short_title.id_for_label }}" class="form-label">Short Title</label>
+                        {{ form.short_title }}
+                        <small class="form-text text-muted">Optional: A shorter name for the bill (e.g., "Budget Act 2024")</small>
+                        {% if form.short_title.errors %}
+                            <div class="text-danger">{{ form.short_title.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.status.id_for_label }}" class="form-label">Status *</label>
+                        {{ form.status }}
+                        <small class="form-text text-muted">Current status of the bill</small>
+                        {% if form.status.errors %}
+                            <div class="text-danger">{{ form.status.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.summary.id_for_label }}" class="form-label">Summary *</label>
+                        {{ form.summary }}
+                        <small class="form-text text-muted">A brief summary of what the bill does (2-3 paragraphs)</small>
+                        {% if form.summary.errors %}
+                            <div class="text-danger">{{ form.summary.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.full_text.id_for_label }}" class="form-label">Full Bill Text *</label>
+                        {{ form.full_text }}
+                        <small class="form-text text-muted">The complete text of the bill, including all sections and clauses</small>
+                        {% if form.full_text.errors %}
+                            <div class="text-danger">{{ form.full_text.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>Note:</strong> You will be listed as the sponsor of this bill. Make sure all information is accurate before submitting.
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg flex-grow-1">Submit Bill</button>
+                        <a href="{% url 'voting:bill_list' %}" class="btn btn-secondary btn-lg">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Guidelines Card -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>Bill Submission Guidelines</h5>
+            </div>
+            <div class="card-body">
+                <h6>Bill Numbers:</h6>
+                <ul>
+                    <li><strong>C-###:</strong> Bills originating in the House of Commons</li>
+                    <li><strong>S-###:</strong> Bills originating in the Senate</li>
+                </ul>
+
+                <h6>Bill Statuses:</h6>
+                <ul>
+                    <li><strong>Draft:</strong> Bill is being prepared</li>
+                    <li><strong>First Reading:</strong> Bill introduced for first time</li>
+                    <li><strong>Second Reading:</strong> Main debate and vote</li>
+                    <li><strong>Committee:</strong> Under committee review</li>
+                    <li><strong>Third Reading:</strong> Final debate and vote</li>
+                    <li><strong>Royal Assent:</strong> Bill has passed and become law</li>
+                </ul>
+
+                <h6>Writing Tips:</h6>
+                <ul>
+                    <li>Be clear and specific about what the bill does</li>
+                    <li>Organize the full text with numbered sections</li>
+                    <li>Include definitions if needed</li>
+                    <li>Specify when the bill would come into force</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

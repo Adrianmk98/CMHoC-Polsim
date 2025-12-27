@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ riding_result.riding.name }} - {{ riding_result.election.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'elections:election_list' %}">Elections</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'elections:election_detail' riding_result.election.id %}">{{ riding_result.election.name }}</a></li>
+                <li class="breadcrumb-item active">{{ riding_result.riding.name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Riding Result Header -->
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">{{ riding_result.riding.name }}</h3>
+                <p class="mb-0">{{ riding_result.election.name }} - {{ riding_result.election.election_date|date:"F d, Y" }}</p>
+            </div>
+            <div class="card-body">
+                {% if riding_result.winner %}
+                <div class="alert alert-success">
+                    <h4>🏆 Winner</h4>
+                    <p class="mb-0">
+                        <strong>
+                            <a href="{% url 'user_profile' riding_result.winner.user.username %}">
+                                {{ riding_result.winner.user.username }}
+                            </a>
+                        </strong>
+                        {% if riding_result.winning_party %}
+                            -
+                            <span class="party-badge" style="background-color: {{ riding_result.winning_party.color }};">
+                                {{ riding_result.winning_party.get_name_display }}
+                            </span>
+                        {% endif %}
+                        {% if riding_result.is_acclaimed %}
+                            <span class="badge bg-info ms-2">Acclaimed</span>
+                        {% endif %}
+                    </p>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <p class="mb-0">Results not yet determined</p>
+                </div>
+                {% endif %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Total Votes Cast:</strong> {{ riding_result.total_votes_cast }}</p>
+                        {% if riding_result.total_registered_voters %}
+                            <p><strong>Registered Voters:</strong> {{ riding_result.total_registered_voters }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        {% if riding_result.turnout_percentage %}
+                            <p><strong>Turnout:</strong> {{ riding_result.turnout_percentage|floatformat:2 }}%</p>
+                        {% endif %}
+                        {% if riding_result.get_margin_of_victory %}
+                            <p><strong>Margin of Victory:</strong> {{ riding_result.get_margin_of_victory }} votes</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if riding_result.notes %}
+                    <hr>
+                    <p>{{ riding_result.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Candidate Results -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h4>📊 All Candidates</h4>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Candidate</th>
+                            <th>Party</th>
+                            <th>Votes</th>
+                            <th>%</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for candidate in candidates %}
+                        <tr {% if candidate.is_winner %}class="table-success"{% endif %}>
+                            <td>
+                                <a href="{% url 'user_profile' candidate.candidate.user.username %}">
+                                    {{ candidate.candidate.user.username }}
+                                </a>
+                                {% if candidate.is_incumbent %}
+                                    <span class="badge bg-secondary">Incumbent</span>
+                                {% endif %}
+                                {% if candidate.is_winner %}
+                                    <span class="badge bg-success">✓ Winner</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if candidate.party %}
+                                    <span class="party-badge" style="background-color: {{ candidate.party.color }};">
+                                        {{ candidate.party.name }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Independent</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ candidate.votes }}</td>
+                            <td>
+                                {% if candidate.vote_percentage %}
+                                    {{ candidate.vote_percentage|floatformat:2 }}%
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <!-- Vote progress bar -->
+                                {% if riding_result.total_votes_cast > 0 %}
+                                    {% widthratio candidate.votes riding_result.total_votes_cast 100 as width %}
+                                    <div class="progress" style="width: 100px; height: 20px;">
+                                        <div class="progress-bar" 
+                                             style="width: {{ width }}%; background-color: {% if candidate.party %}{{ candidate.party.color }}{% else %}#6c757d{% endif %};"
+                                             title="{{ candidate.vote_percentage|floatformat:1 }}%">
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Historical Results -->
+        {% if historical_results %}
+        <div class="card">
+            <div class="card-header">
+                <h5>📜 Previous Elections in {{ riding_result.riding.name }}</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for result in historical_results %}
+                <a href="{% url 'elections:riding_result_detail' result.id %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>{{ result.election.name }}</strong>
+                            {% if result.winner %}
+                                - {{ result.winner.user.username }}
+                                {% if result.winning_party %}
+                                    (<span style="color: {{ result.winning_party.color }};">{{ result.winning_party.name }}</span>)
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">{{ result.election.election_date|date:"Y" }}</small>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6>Riding Information</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Riding:</strong> {{ riding_result.riding.name }}</p>
+                <p><strong>Province:</strong> {{ riding_result.riding.get_province_display }}</p>
+                {% if riding_result.riding.population %}
+                    <p><strong>Population:</strong> {{ riding_result.riding.population }}</p>
+                {% endif %}
+                <a href="{% url 'riding_detail' riding_result.riding.id %}" class="btn btn-outline-primary w-100">
+                    View Riding Details
+                </a>
+                <a href="{% url 'elections:riding_history' riding_result.riding.id %}" class="btn btn-outline-secondary w-100 mt-2">
+                    Complete Election History
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6>Quick Stats</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Candidates:</strong> {{ candidates.count }}</p>
+                <p><strong>Total Votes:</strong> {{ riding_result.total_votes_cast }}</p>
+                {% if riding_result.turnout_percentage %}
+                    <p><strong>Turnout:</strong> {{ riding_result.turnout_percentage|floatformat:1 }}%</p>
+                {% endif %}
+                {% if riding_result.get_winning_percentage %}
+                    <p><strong>Winning %:</strong> {{ riding_result.get_winning_percentage|floatformat:1 }}%</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.party-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.85em;
+}
+</style>
+{% endblock %}

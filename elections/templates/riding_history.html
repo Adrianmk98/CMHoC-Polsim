@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Election History - {{ riding.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'riding_list' %}">Ridings</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'riding_detail' riding.id %}">{{ riding.name }}</a></li>
+                <li class="breadcrumb-item active">Election History</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">📜 Election History</h3>
+                <p class="mb-0">{{ riding.name }}, {{ riding.get_province_display }}</p>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Complete record of all elections held in this riding.</p>
+            </div>
+        </div>
+
+        {% if results %}
+        <!-- Timeline of Results -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Election Results Timeline</h5>
+            </div>
+            <div class="card-body">
+                {% for result in results %}
+                <div class="card mb-3 {% if result.election.is_by_election %}border-secondary{% endif %}">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h5>
+                                    <a href="{% url 'elections:election_detail' result.election.id %}">
+                                        {{ result.election.name }}
+                                    </a>
+                                    {% if result.election.is_by_election %}
+                                        <span class="badge bg-secondary">By-Election</span>
+                                    {% endif %}
+                                </h5>
+                                <p class="mb-1">
+                                    <strong>Date:</strong> {{ result.election.election_date|date:"F d, Y" }}
+                                </p>
+                                {% if result.winner %}
+                                <p class="mb-1">
+                                    <strong>Winner:</strong>
+                                    <a href="{% url 'user_profile' result.winner.user.username %}">
+                                        {{ result.winner.user.username }}
+                                    </a>
+                                    {% if result.winning_party %}
+                                        -
+                                        <span class="party-badge" style="background-color: {{ result.winning_party.color }};">
+                                            {{ result.winning_party.get_name_display }}
+                                        </span>
+                                    {% endif %}
+                                    {% if result.is_acclaimed %}
+                                        <span class="badge bg-info">Acclaimed</span>
+                                    {% endif %}
+                                </p>
+                                {% endif %}
+                                <p class="mb-0">
+                                    <strong>Votes Cast:</strong> {{ result.total_votes_cast }}
+                                    {% if result.turnout_percentage %}
+                                        ({{ result.turnout_percentage|floatformat:1 }}% turnout)
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <a href="{% url 'elections:riding_result_detail' result.id %}" class="btn btn-outline-primary">
+                                    View Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            No election results recorded for this riding yet.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar with Statistics -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6>Riding Info</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Name:</strong> {{ riding.name }}</p>
+                <p><strong>Province:</strong> {{ riding.get_province_display }}</p>
+                {% if riding.population %}
+                    <p><strong>Population:</strong> {{ riding.population }}</p>
+                {% endif %}
+                <p><strong>Elections Held:</strong> {{ results.count }}</p>
+                <a href="{% url 'riding_detail' riding.id %}" class="btn btn-outline-primary w-100">
+                    View Riding Details
+                </a>
+            </div>
+        </div>
+
+        <!-- Party Performance -->
+        {% if party_timeline %}
+        <div class="card">
+            <div class="card-header">
+                <h6>Party Performance</h6>
+            </div>
+            <div class="card-body">
+                {% regroup party_timeline by party as party_list %}
+                {% for party_group in party_list %}
+                    {% if party_group.grouper %}
+                    <p class="mb-1">
+                        <span class="party-badge" style="background-color: {{ party_group.grouper.color }};">
+                            {{ party_group.grouper.name }}
+                        </span>
+                        <strong>{{ party_group.list|length }}</strong> win{{ party_group.list|length|pluralize }}
+                    </p>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.party-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.85em;
+}
+</style>
+{% endblock %}

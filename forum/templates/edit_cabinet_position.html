@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Position - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'cabinet_list' %}">Cabinet</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'manage_cabinet' %}">Manage Cabinet</a></li>
+                <li class="breadcrumb-item active">Edit Position</li>
+            </ol>
+        </nav>
+
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3>✏️ Edit Cabinet Position</h3>
+                <p class="mb-0">{{ position.user_profile.user.username }} - {{ position.title }}</p>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Member:</strong> {{ position.user_profile.user.username }}<br>
+                    <strong>Position Type:</strong> {{ position.get_position_type_display }}<br>
+                    <strong>Appointed:</strong> {{ position.start_date|date:"F d, Y" }}
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="id_portfolio" class="form-label">Portfolio *</label>
+                        {{ form.portfolio }}
+                        <small class="form-text text-muted">Update the portfolio name</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_title" class="form-label">Full Title *</label>
+                        {{ form.title }}
+                        <small class="form-text text-muted">Update the full title</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_order" class="form-label">Order *</label>
+                        {{ form.order }}
+                        <small class="form-text text-muted">Change the display order</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_notes" class="form-label">Notes</label>
+                        {{ form.notes }}
+                        <small class="form-text text-muted">Update or add notes</small>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg flex-grow-1">Save Changes</button>
+                        <a href="{% url 'manage_cabinet' %}" class="btn btn-secondary btn-lg">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6>ℹ️ What You Can Edit</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Editable:</strong></p>
+                <ul>
+                    <li>Portfolio name</li>
+                    <li>Full title</li>
+                    <li>Display order</li>
+                    <li>Notes</li>
+                </ul>
+                
+                <p class="mb-0"><strong>Cannot Edit:</strong></p>
+                <ul class="mb-0">
+                    <li>Member (must remove and re-add)</li>
+                    <li>Position type (must remove and re-add)</li>
+                    <li>Start date (historical record)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

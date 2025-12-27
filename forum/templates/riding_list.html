@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Electoral Ridings - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>🗳️ Electoral Ridings</h2>
+        <p class="lead">Browse all active electoral districts across Canada</p>
+    </div>
+</div>
+
+<!-- Province Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Filter by Province/Territory</label>
+                <select name="province" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Provinces & Territories</option>
+                    {% for code, name in province_choices %}
+                    <option value="{{ code }}" {% if province_filter == code %}selected{% endif %}>
+                        {{ name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+                <a href="{% url 'riding_list' %}" class="btn btn-secondary">Clear Filter</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <strong>Total Ridings:</strong> {{ total_ridings }}
+</div>
+
+<hr>
+
+<!-- Ridings by Province -->
+{% for province, riding_list in provinces.items %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">{{ province }}</h4>
+    </div>
+    <div class="list-group list-group-flush">
+        {% for riding in riding_list %}
+        <a href="{% url 'riding_detail' riding.id %}" class="list-group-item list-group-item-action">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1">{{ riding.name }}</h6>
+                    {% if riding.population %}
+                        <small class="text-muted">Population: {{ riding.population|intcomma }}</small>
+                    {% endif %}
+                </div>
+                <div class="text-end">
+                    {% if riding.current_mp %}
+                        <span class="badge bg-success">MP: {{ riding.current_mp.username }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Vacant</span>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    <div class="card-footer text-muted">
+        <small>{{ riding_list|length }} riding{{ riding_list|length|pluralize }} in {{ province }}</small>
+    </div>
+</div>
+{% empty %}
+<div class="alert alert-warning">
+    No ridings found. {% if province_filter %}Try selecting a different province.{% endif %}
+</div>
+{% endfor %}
+
+{% endblock %}

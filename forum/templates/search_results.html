@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}Search Results - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>🔍 Search Results</h2>
+        {% if query %}
+            <p class="lead">Results for: <strong>"{{ query }}"</strong></p>
+        {% else %}
+            <p class="lead">Enter a search term to find threads and posts</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Search Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-5">
+                <label class="form-label">Search</label>
+                <input type="text" name="q" class="form-control" placeholder="Enter keywords..." value="{{ query }}" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Search In</label>
+                <select name="type" class="form-select">
+                    <option value="all" {% if search_type == 'all' %}selected{% endif %}>All</option>
+                    <option value="threads" {% if search_type == 'threads' %}selected{% endif %}>Threads Only</option>
+                    <option value="posts" {% if search_type == 'posts' %}selected{% endif %}>Posts Only</option>
+                </select>
+            </div>
+            {% if available_flairs %}
+            <div class="col-md-3">
+                <label class="form-label">Flair</label>
+                <select name="flair" class="form-select">
+                    <option value="">All Flairs</option>
+                    {% for flair in available_flairs %}
+                    <option value="{{ flair.id }}" {% if flair.id|stringformat:"s" == flair_filter %}selected{% endif %}>
+                        {{ flair.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-md-1 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if query %}
+    <!-- Thread Results -->
+    {% if threads %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">📋 Threads ({{ threads|length }})</h5>
+        </div>
+        <div class="list-group list-group-flush">
+            {% for thread in threads %}
+            <a href="{% url 'thread_detail' thread.id %}" class="list-group-item list-group-item-action">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1">
+                            {% if thread.is_pinned %}📌 {% endif %}
+                            {% if thread.is_locked %}🔒 {% endif %}
+                            {% if thread.flair %}
+                                <span class="badge" style="background-color: {{ thread.flair.color }}; color: white;">
+                                    {{ thread.flair.name }}
+                                </span>
+                            {% endif %}
+                            {{ thread.title }}
+                        </h6>
+                        <p class="mb-1 text-muted">
+                            <small>
+                                in <strong>{{ thread.category.name }}</strong> • 
+                                by {{ thread.author.username }} • 
+                                {{ thread.created_at|timesince }} ago
+                            </small>
+                        </p>
+                    </div>
+                    <div>
+                        <small class="text-muted">{{ thread.post_count }} replies</small>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Post Results -->
+    {% if posts %}
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">💬 Posts ({{ posts|length }})</h5>
+        </div>
+        <div class="list-group list-group-flush">
+            {% for post in posts %}
+            <a href="{% url 'thread_detail' post.thread.id %}" class="list-group-item list-group-item-action">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">
+                            in thread: <strong>{{ post.thread.title }}</strong>
+                        </h6>
+                        <p class="mb-1">{{ post.content|truncatewords:30 }}</p>
+                        <small class="text-muted">
+                            by {{ post.author.username }} • 
+                            in {{ post.thread.category.name }} • 
+                            {{ post.created_at|timesince }} ago
+                        </small>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- No Results -->
+    {% if not threads and not posts %}
+    <div class="alert alert-info">
+        <h5>No results found</h5>
+        <p class="mb-0">Try different keywords or search filters.</p>
+    </div>
+    {% endif %}
+
+    <!-- Search Tips -->
+    <div class="card">
+        <div class="card-header">
+            <h6>💡 Search Tips</h6>
+        </div>
+        <div class="card-body">
+            <ul class="mb-0">
+                <li>Use specific keywords for better results</li>
+                <li>Search is case-insensitive</li>
+                <li>Filter by flair to narrow results</li>
+                <li>Search looks through thread titles and post content</li>
+            </ul>
+        </div>
+    </div>
+{% else %}
+    <!-- Instructions when no query -->
+    <div class="alert alert-info">
+        <h5>How to Search</h5>
+        <p>Enter keywords in the search box above to find:</p>
+        <ul class="mb-0">
+            <li><strong>Threads</strong> - Search in thread titles</li>
+            <li><strong>Posts</strong> - Search in post content</li>
+            <li><strong>All</strong> - Search both threads and posts</li>
+        </ul>
+    </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+
+{% block title %}Compare Elections - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'elections:election_list' %}">Elections</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'elections:compare_elections' %}">Compare Elections</a></li>
+                <li class="breadcrumb-item active">Results</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3>📊 Election Comparison</h3>
+            </div>
+            <div class="card-body">
+                <h5>Comparing {{ elections.count }} Elections:</h5>
+                <ul>
+                    {% for election in elections %}
+                    <li>
+                        <a href="{% url 'elections:election_detail' election.id %}">{{ election.name }}</a>
+                        ({{ election.election_date|date:"F d, Y" }})
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Seat Comparison Table -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>Seat Totals by Party</h4>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Party</th>
+                    {% for election in elections %}
+                    <th class="text-center">
+                        {{ election.name }}<br>
+                        <small class="text-muted">{{ election.election_date.year }}</small>
+                    </th>
+                    {% endfor %}
+                    <th class="text-center">Change</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% load custom_filters %}
+                {% regroup comparison_data.values|dictsort:"election.election_date" by election as elections_by_date %}
+                
+                {# Get all unique parties across all elections #}
+                {% with all_parties=dict %}
+                    {% for election_id, data in comparison_data.items %}
+                        {% for party_data in data.seat_totals %}
+                            {% if party_data.party_name not in all_parties %}
+                                {# Store party info #}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                {% endwith %}
+
+                {# Build party comparison rows #}
+                {% for election_id, data in comparison_data.items %}
+                    {% for party_data in data.seat_totals %}
+                        {# This is a simplified version - ideally you'd collect all unique parties first #}
+                    {% endfor %}
+                {% endfor %}
+
+                {# Simplified display - show each election's top parties #}
+                {% for election in elections %}
+                    {% with election_data=comparison_data|get_item:election.id %}
+                        {% if election_data.seat_totals %}
+                            <tr>
+                                <td colspan="{{ elections.count|add:2 }}" class="table-secondary">
+                                    <strong>{{ election.name }}</strong>
+                                </td>
+                            </tr>
+                            {% for party in election_data.seat_totals %}
+                            <tr>
+                                <td>
+                                    <span class="party-badge" style="background-color: {{ party.party_color }};">
+                                        {{ party.party_name }}
+                                    </span>
+                                </td>
+                                <td class="text-center">{{ party.seats }}</td>
+                                <td></td>
+                            </tr>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Visual Comparison -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>Visual Seat Distribution</h4>
+    </div>
+    <div class="card-body">
+        {% for election in elections %}
+            {% with election_data=comparison_data|get_item:election.id %}
+                <h5>{{ election.name }} ({{ election.election_date.year }})</h5>
+                
+                {% if election_data.seat_totals %}
+                <div class="progress mb-3" style="height: 40px;">
+                    {% for party in election_data.seat_totals %}
+                        {% widthratio party.seats election.total_seats 100 as percentage %}
+                        <div class="progress-bar" 
+                             style="width: {{ percentage }}%; background-color: {{ party.party_color }};"
+                             title="{{ party.party_name }}: {{ party.seats }} seats">
+                            {% if percentage > 5 %}{{ party.seats }}{% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="row mb-4">
+                    {% for party in election_data.seat_totals %}
+                    <div class="col-md-3 col-sm-6 mb-2">
+                        <div class="card text-center">
+                            <div class="card-body" style="background-color: {{ party.party_color }}20;">
+                                <h3 style="color: {{ party.party_color }};">{{ party.seats }}</h3>
+                                <h6>{{ party.party_name }}</h6>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endwith %}
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Election Statistics -->
+<div class="card">
+    <div class="card-header">
+        <h4>Election Statistics</h4>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Election</th>
+                    <th>Date</th>
+                    <th>Total Seats</th>
+                    <th>Total Votes</th>
+                    <th>Turnout</th>
+                    <th>Winning Party</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for election in elections %}
+                <tr>
+                    <td>
+                        <a href="{% url 'elections:election_detail' election.id %}">
+                            {{ election.name }}
+                        </a>
+                    </td>
+                    <td>{{ election.election_date|date:"F d, Y" }}</td>
+                    <td>{{ election.total_seats }}</td>
+                    <td>{{ election.total_votes_cast|intcomma }}</td>
+                    <td>
+                        {% if election.voter_turnout %}
+                            {{ election.voter_turnout|floatformat:1 }}%
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% with winning=election.get_winning_party %}
+                            {% if winning %}
+                                <span class="party-badge" style="background-color: {{ winning.party_color }};">
+                                    {{ winning.party_name }}
+                                </span>
+                                ({{ winning.seats }} seats)
+                            {% else %}
+                                -
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="mt-3">
+    <a href="{% url 'elections:compare_elections' %}" class="btn btn-primary">
+        Compare Different Elections
+    </a>
+    <a href="{% url 'elections:election_list' %}" class="btn btn-secondary">
+        Back to Elections
+    </a>
+</div>
+
+<style>
+.party-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.85em;
+}
+</style>
+
+{% endblock %}

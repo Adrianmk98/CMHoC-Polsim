@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Press Release - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4>🗑️ Delete Press Release</h4>
+            </div>
+            <div class="card-body">
+                <p class="lead">Are you sure you want to delete this press release?</p>
+                
+                <div class="alert alert-warning">
+                    <strong>{{ press_release.title }}</strong>
+                    <br>
+                    <small>Published: {{ press_release.published_at|date:"F d, Y" }}</small>
+                </div>
+                
+                <p><strong>This action cannot be undone!</strong></p>
+                <p>All comments and data associated with this press release will also be deleted.</p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger flex-grow-1">
+                            Yes, Delete This Press Release
+                        </button>
+                        <a href="{% url 'press:detail' press_release.slug %}" class="btn btn-secondary flex-grow-1">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

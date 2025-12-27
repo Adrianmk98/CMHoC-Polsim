@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Open Vote - {{ bill.bill_number }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'voting:bill_list' %}">Bills</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'voting:bill_detail' bill.id %}">{{ bill.bill_number }}</a></li>
+                <li class="breadcrumb-item active">Open Vote</li>
+            </ol>
+        </nav>
+
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h3>Open New Vote Session</h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Bill:</strong> {{ bill.bill_number }} - {{ bill.title }}<br>
+                    <strong>Current Status:</strong> {{ bill.get_status_display }}
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.vote_type.id_for_label }}" class="form-label">Vote Type *</label>
+                        {{ form.vote_type }}
+                        <small class="form-text text-muted">Select the type of vote being conducted</small>
+                        {% if form.vote_type.errors %}
+                            <div class="text-danger">{{ form.vote_type.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Vote Description *</label>
+                        {{ form.description }}
+                        <small class="form-text text-muted">Describe what is being voted on (e.g., "Vote on second reading of Bill C-1")</small>
+                        {% if form.description.errors %}
+                            <div class="text-danger">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.closes_at.id_for_label }}" class="form-label">Voting Closes At *</label>
+                        {{ form.closes_at }}
+                        <small class="form-text text-muted">When should voting close? Format: YYYY-MM-DD HH:MM (24-hour time)</small>
+                        {% if form.closes_at.errors %}
+                            <div class="text-danger">{{ form.closes_at.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <strong>Important:</strong>
+                        <ul class="mb-0">
+                            <li>Make sure the voting period is appropriate for the type of vote</li>
+                            <li>Members will be able to cast and change their votes until the closing time</li>
+                            <li>Once opened, the vote session cannot be deleted (but can be closed early)</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning btn-lg flex-grow-1">Open Vote Session</button>
+                        <a href="{% url 'voting:bill_detail' bill.id %}" class="btn btn-secondary btn-lg">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Guidelines -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>Voting Guidelines</h5>
+            </div>
+            <div class="card-body">
+                <h6>Vote Types:</h6>
+                <ul>
+                    <li><strong>First Reading Vote:</strong> Procedural vote to introduce the bill</li>
+                    <li><strong>Second Reading Vote:</strong> Main debate and principle vote</li>
+                    <li><strong>Third Reading Vote:</strong> Final passage vote</li>
+                    <li><strong>Amendment Vote:</strong> Vote on a specific amendment</li>
+                    <li><strong>Committee Vote:</strong> Committee-level voting</li>
+                </ul>
+
+                <h6>Recommended Voting Periods:</h6>
+                <ul>
+                    <li><strong>Standard Bills:</strong> 48-72 hours</li>
+                    <li><strong>Urgent Matters:</strong> 24 hours minimum</li>
+                    <li><strong>Major Legislation:</strong> 5-7 days</li>
+                    <li><strong>Amendments:</strong> 24-48 hours</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

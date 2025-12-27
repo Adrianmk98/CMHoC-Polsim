@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ party.get_name_display }} - Election History{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'elections:election_list' %}">Elections</a></li>
+                <li class="breadcrumb-item active">{{ party.get_name_display }} History</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header text-white" style="background-color: {{ party.color }};">
+                <h2 class="mb-0">{{ party.get_name_display }}</h2>
+                <p class="mb-0">Election Performance History</p>
+            </div>
+            <div class="card-body">
+                <p class="lead">Complete electoral history for {{ party.get_name_display }} across all federal elections.</p>
+            </div>
+        </div>
+
+        {% if elections_data %}
+        <!-- Performance Chart -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Seat Performance Over Time</h4>
+            </div>
+            <div class="card-body">
+                <canvas id="seatChart" height="100"></canvas>
+            </div>
+        </div>
+
+        <!-- Election Results Table -->
+        <div class="card">
+            <div class="card-header">
+                <h4>Detailed Results</h4>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Election</th>
+                            <th>Date</th>
+                            <th>Seats Won</th>
+                            <th>Total Votes</th>
+                            <th>Change</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for data in elections_data %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'elections:election_detail' data.election.id %}">
+                                    {{ data.election.name }}
+                                </a>
+                            </td>
+                            <td>{{ data.election.election_date|date:"F d, Y" }}</td>
+                            <td>
+                                <strong>{{ data.seats }}</strong>
+                            </td>
+                            <td>{{ data.votes|intcomma }}</td>
+                            <td>
+                                {% if forloop.counter0 > 0 %}
+                                    {% with prev=elections_data|slice:":"|last %}
+                                        {% if prev %}
+                                            {% widthratio data.seats 1 1 as current_seats %}
+                                            {% widthratio prev.seats 1 1 as prev_seats %}
+                                            {% widthratio current_seats 1 1 as current %}
+                                            {% widthratio prev_seats 1 1 as previous %}
+                                            {% if current > previous %}
+                                                <span class="badge bg-success">+{{ current|add:"-"|add:previous }} seats</span>
+                                            {% elif current < previous %}
+                                                <span class="badge bg-danger">{{ current|add:"-"|add:previous }} seats</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">No change</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endwith %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <h5>No Election Results</h5>
+            <p class="mb-0">This party has not won any seats in recorded federal elections.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6>Party Information</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Name:</strong> {{ party.get_name_display }}</p>
+                <p><strong>Short Name:</strong> {{ party.name }}</p>
+                <p>
+                    <strong>Color:</strong>
+                    <span class="party-badge" style="background-color: {{ party.color }};">
+                        {{ party.color }}
+                    </span>
+                </p>
+                {% if elections_data %}
+                    <p><strong>Elections Participated:</strong> {{ elections_data|length }}</p>
+                    <p><strong>Total Seats Won:</strong> 
+                        {% widthratio elections_data|length 1 1 as total %}
+                        {{ total }}
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if elections_data %}
+        <div class="card">
+            <div class="card-header">
+                <h6>Best Performance</h6>
+            </div>
+            <div class="card-body">
+                {% with best=elections_data|first %}
+                    <p><strong>Election:</strong> {{ best.election.name }}</p>
+                    <p><strong>Seats:</strong> {{ best.seats }}</p>
+                    <p><strong>Votes:</strong> {{ best.votes|intcomma }}</p>
+                {% endwith %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.party-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.85em;
+}
+</style>
+
+{% if elections_data %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('seatChart').getContext('2d');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: [
+            {% for data in elections_data reversed %}
+                '{{ data.election.election_date.year }}'{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'Seats Won',
+            data: [
+                {% for data in elections_data reversed %}
+                    {{ data.seats }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            borderColor: '{{ party.color }}',
+            backgroundColor: '{{ party.color }}40',
+            tension: 0.1,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: false
+            },
+            title: {
+                display: true,
+                text: '{{ party.get_name_display }} Seat Performance'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+</script>
+{% endif %}
+
+{% endblock %}

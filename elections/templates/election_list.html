@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Elections - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>🗳️ Election History</h2>
+        <p class="lead">Federal elections and by-elections in Canada</p>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-12">
+        {% if user.is_authenticated %}
+            {% if user.is_staff or user.profile.is_moderator and user.profile.can_manage_elections %}
+                <a href="{% url 'moderator:election_dashboard' %}" class="btn btn-warning me-2">
+                    ⚙️ Moderator Tools
+                </a>
+            {% endif %}
+        {% endif %}
+        <a href="{% url 'elections:compare_elections' %}" class="btn btn-primary">
+            📊 Compare Elections
+        </a>
+    </div>
+</div>
+
+<!-- Federal Elections -->
+<div class="card mb-4">
+    <div class="card-header bg-danger text-white">
+        <h4 class="mb-0">🏛️ Federal Elections</h4>
+    </div>
+    {% if federal_elections %}
+    <div class="list-group list-group-flush">
+        {% for election in federal_elections %}
+        <a href="{% url 'elections:election_detail' election.id %}" class="list-group-item list-group-item-action">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 class="mb-1">
+                        {{ election.name }}
+                        {% if not election.is_completed %}
+                            <span class="badge bg-warning text-dark">In Progress</span>
+                        {% endif %}
+                    </h5>
+                    {% if election.description %}
+                        <p class="mb-1 text-muted">{{ election.description|truncatewords:20 }}</p>
+                    {% endif %}
+                    <small class="text-muted">
+                        {{ election.election_date|date:"F d, Y" }}
+                        {% if election.total_seats > 0 %}
+                            • {{ election.total_seats }} seats decided
+                        {% endif %}
+                        {% if election.voter_turnout %}
+                            • {{ election.voter_turnout }}% turnout
+                        {% endif %}
+                    </small>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-primary">{{ election.election_date.year }}</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card-body">
+        <p class="text-muted mb-0">No federal elections recorded yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- By-Elections -->
+<div class="card">
+    <div class="card-header bg-secondary text-white">
+        <h4 class="mb-0">📍 By-Elections</h4>
+    </div>
+    {% if by_elections %}
+    <div class="list-group list-group-flush">
+        {% for election in by_elections %}
+        <a href="{% url 'elections:election_detail' election.id %}" class="list-group-item list-group-item-action">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="mb-1">
+                        {{ election.name }}
+                        {% if not election.is_completed %}
+                            <span class="badge bg-warning text-dark">In Progress</span>
+                        {% endif %}
+                    </h6>
+                    {% if election.riding %}
+                        <p class="mb-1">
+                            <strong>Riding:</strong> {{ election.riding.name }}, {{ election.riding.get_province_display }}
+                        </p>
+                    {% endif %}
+                    <small class="text-muted">{{ election.election_date|date:"F d, Y" }}</small>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-secondary">{{ election.election_date.year }}</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card-body">
+        <p class="text-muted mb-0">No by-elections recorded yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

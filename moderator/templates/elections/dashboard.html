@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}Moderator Dashboard - Elections{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>⚙️ Election Moderator Dashboard</h2>
+            <a href="{% url 'elections:election_list' %}" class="btn btn-secondary">
+                Back to Elections
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="text-primary">{{ total_elections }}</h1>
+                <h6>Total Elections</h6>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="text-success">{{ completed_elections }}</h1>
+                <h6>Completed</h6>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="text-warning">{{ pending_elections }}</h1>
+                <h6>In Progress</h6>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">Quick Actions</h4>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5>📊 Create New Election</h5>
+                        <p class="text-muted">Start a new federal election or by-election</p>
+                        <a href="{% url 'moderator:create_election' %}" class="btn btn-primary">
+                            Create Election
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5>📋 View All Elections</h5>
+                        <p class="text-muted">Browse and manage existing elections</p>
+                        <a href="{% url 'elections:election_list' %}" class="btn btn-secondary">
+                            View Elections
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Elections -->
+<div class="card">
+    <div class="card-header">
+        <h4>Recent Elections</h4>
+    </div>
+    <div class="list-group list-group-flush">
+        {% for election in recent_elections %}
+        <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="mb-1">
+                        {{ election.name }}
+                        {% if not election.is_completed %}
+                            <span class="badge bg-warning text-dark">In Progress</span>
+                        {% else %}
+                            <span class="badge bg-success">Completed</span>
+                        {% endif %}
+                    </h6>
+                    <small class="text-muted">
+                        {{ election.election_date|date:"F d, Y" }}
+                        • {{ election.get_election_type_display }}
+                        {% if election.total_seats > 0 %}
+                            • {{ election.total_seats }} seats
+                        {% endif %}
+                    </small>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'elections:election_detail' election.id %}" class="btn btn-sm btn-outline-primary">
+                        View
+                    </a>
+                    {% if not election.is_completed %}
+                    <a href="{% url 'moderator:add_results' election.id %}" class="btn btn-sm btn-outline-warning">
+                        Add Results
+                    </a>
+                    <a href="{% url 'moderator:complete_election' election.id %}" class="btn btn-sm btn-outline-success">
+                        Complete
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="list-group-item">
+            <p class="text-muted mb-0">No elections yet. Create your first election!</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

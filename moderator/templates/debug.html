@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %}Permission Debug - Moderator{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>🔍 Permission Debug Information</h2>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">
+        <h5>User Information</h5>
+    </div>
+    <div class="card-body">
+        <table class="table">
+            <tr>
+                <th>Username:</th>
+                <td>{{ debug_info.username }}</td>
+            </tr>
+            <tr>
+                <th>Is Authenticated:</th>
+                <td>
+                    {% if debug_info.is_authenticated %}
+                        <span class="badge bg-success">✓ Yes</span>
+                    {% else %}
+                        <span class="badge bg-danger">✗ No</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>Is Staff (Admin):</th>
+                <td>
+                    {% if debug_info.is_staff %}
+                        <span class="badge bg-success">✓ Yes</span>
+                    {% else %}
+                        <span class="badge bg-secondary">✗ No</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header {% if debug_info.has_profile %}bg-success{% else %}bg-danger{% endif %} text-white">
+        <h5>Profile Status</h5>
+    </div>
+    <div class="card-body">
+        {% if debug_info.has_profile %}
+            <p><span class="badge bg-success">✓ Profile Exists</span></p>
+            <p><strong>Profile ID:</strong> {{ debug_info.profile_id }}</p>
+            
+            <h6>Direct Profile Fields:</h6>
+            <table class="table table-sm">
+                <tr>
+                    <th>is_moderator:</th>
+                    <td>
+                        {% if debug_info.is_moderator %}
+                            <span class="badge bg-success">✓ True</span>
+                        {% else %}
+                            <span class="badge bg-danger">✗ False</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>can_manage_elections:</th>
+                    <td>
+                        {% if debug_info.can_manage_elections %}
+                            <span class="badge bg-success">✓ True</span>
+                        {% else %}
+                            <span class="badge bg-secondary">✗ False</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>can_manage_cabinet:</th>
+                    <td>
+                        {% if debug_info.can_manage_cabinet %}
+                            <span class="badge bg-success">✓ True</span>
+                        {% else %}
+                            <span class="badge bg-secondary">✗ False</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>can_manage_bills:</th>
+                    <td>
+                        {% if debug_info.can_manage_bills %}
+                            <span class="badge bg-success">✓ True</span>
+                        {% else %}
+                            <span class="badge bg-secondary">✗ False</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>can_manage_users:</th>
+                    <td>
+                        {% if debug_info.can_manage_users %}
+                            <span class="badge bg-success">✓ True</span>
+                        {% else %}
+                            <span class="badge bg-secondary">✗ False</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+        {% else %}
+            <div class="alert alert-danger">
+                <h6>❌ No Profile Found!</h6>
+                <p>Error: {{ debug_info.profile_error }}</p>
+                <p>You need to create a profile for this user.</p>
+                <pre>python manage.py make_moderator {{ debug_info.username }} --elections</pre>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header bg-info text-white">
+        <h5>Permission Function Results</h5>
+    </div>
+    <div class="card-body">
+        <p>These are the results from the permission checking functions:</p>
+        <table class="table table-sm">
+            <tr>
+                <th>is_moderator():</th>
+                <td>
+                    {% if debug_info.permissions.is_moderator %}
+                        <span class="badge bg-success">✓ True</span>
+                    {% else %}
+                        <span class="badge bg-danger">✗ False</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>can_manage_elections():</th>
+                <td>
+                    {% if debug_info.permissions.can_manage_elections %}
+                        <span class="badge bg-success">✓ True</span>
+                    {% else %}
+                        <span class="badge bg-danger">✗ False</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>can_manage_cabinet():</th>
+                <td>
+                    {% if debug_info.permissions.can_manage_cabinet %}
+                        <span class="badge bg-success">✓ True</span>
+                    {% else %}
+                        <span class="badge bg-danger">✗ False</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>can_manage_bills():</th>
+                <td>
+                    {% if debug_info.permissions.can_manage_bills %}
+                        <span class="badge bg-success">✓ True</span>
+                    {% else %}
+                        <span class="badge bg-danger">✗ False</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>can_manage_users():</th>
+                <td>
+                    {% if debug_info.permissions.can_manage_users %}
+                        <span class="badge bg-success">✓ True</span>
+                    {% else %}
+                        <span class="badge bg-danger">✗ False</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5>What To Do</h5>
+    </div>
+    <div class="card-body">
+        {% if not debug_info.has_profile %}
+            <div class="alert alert-warning">
+                <h6>Create Profile First:</h6>
+                <pre>python manage.py make_moderator {{ debug_info.username }} --elections</pre>
+            </div>
+        {% elif not debug_info.is_moderator %}
+            <div class="alert alert-warning">
+                <h6>Enable Moderator Flag:</h6>
+                <p>The <code>is_moderator</code> field is False. Run:</p>
+                <pre>python manage.py make_moderator {{ debug_info.username }} --elections</pre>
+            </div>
+        {% elif not debug_info.permissions.is_moderator %}
+            <div class="alert alert-danger">
+                <h6>Permission Function Failing:</h6>
+                <p>The profile fields are set correctly but the permission function is returning False.</p>
+                <p>This might be a try/except catching an error. Check the moderator/permissions.py file.</p>
+            </div>
+        {% else %}
+            <div class="alert alert-success">
+                <h6>✓ Everything Looks Good!</h6>
+                <p>You should be able to access moderator tools.</p>
+                <a href="{% url 'moderator:dashboard' %}" class="btn btn-success">Go to Moderator Dashboard</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mt-3">
+    <a href="{% url 'forum_index' %}" class="btn btn-secondary">Back to Forum</a>
+</div>
+
+{% endblock %}

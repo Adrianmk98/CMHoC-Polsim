@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ bill.bill_number }}: {{ bill.title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'forum_index' %}">Forum</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'voting:bill_list' %}">Bills</a></li>
+                <li class="breadcrumb-item active">{{ bill.bill_number }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Bill Header -->
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">{{ bill.bill_number }}: {{ bill.title }}</h3>
+                {% if bill.short_title %}
+                    <p class="mb-0"><em>{{ bill.short_title }}</em></p>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Sponsor:</strong> {{ bill.sponsor.username }}
+                        {% if bill.sponsor.profile.party %}
+                            <span class="party-badge" style="background-color: {{ bill.sponsor.profile.party.color }};">
+                                {{ bill.sponsor.profile.party.name }}
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Chamber:</strong> {{ bill.get_chamber_display }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Status:</strong> 
+                        {% if bill.status == 'ROYAL_ASSENT' %}
+                            <span class="badge bg-success">✓ {{ bill.get_status_display }}</span>
+                        {% elif bill.status == 'FAILED' %}
+                            <span class="badge bg-danger">✗ {{ bill.get_status_display }}</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">{{ bill.get_status_display }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Submitted:</strong> {{ bill.created_at|date:"F d, Y" }}
+                    </div>
+                </div>
+
+                <hr>
+
+                <h5>Summary</h5>
+                <p>{{ bill.summary }}</p>
+
+                <hr>
+
+                <h5>Full Text</h5>
+                <div style="white-space: pre-wrap; font-family: monospace; background: #f8f9fa; padding: 15px; border-radius: 5px;">{{ bill.full_text }}</div>
+            </div>
+        </div>
+
+        <!-- Current Vote -->
+        {% if current_vote %}
+        <div class="card mb-3 border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">🗳️ Active Vote: {{ current_vote.get_vote_type_display }}</h4>
+            </div>
+            <div class="card-body">
+                <p>{{ current_vote.description }}</p>
+                
+                <div class="row text-center mb-3">
+                    <div class="col-4">
+                        <h3 class="text-success">{{ current_vote.yea_count }}</h3>
+                        <p class="text-muted">Yea</p>
+                    </div>
+                    <div class="col-4">
+                        <h3 class="text-danger">{{ current_vote.nay_count }}</h3>
+                        <p class="text-muted">Nay</p>
+                    </div>
+                    <div class="col-4">
+                        <h3 class="text-secondary">{{ current_vote.abstain_count }}</h3>
+                        <p class="text-muted">Abstain</p>
+                    </div>
+                </div>
+
+                <p class="text-muted">
+                    <strong>Closes:</strong> {{ current_vote.closes_at|date:"F d, Y g:i A" }}
+                    {% if current_vote.is_open %}
+                        <span class="badge bg-success">Open</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Closed</span>
+                    {% endif %}
+                </p>
+
+                {% if user.is_authenticated %}
+                    {% if current_vote.is_open %}
+                        {% if user_ballot %}
+                            <div class="alert alert-info">
+                                You voted: <strong>{{ user_ballot.get_vote_display }}</strong>
+                                <a href="{% url 'voting:cast_vote' current_vote.id %}" class="btn btn-sm btn-outline-primary ms-2">Change Vote</a>
+                            </div>
+                        {% else %}
+                            <a href="{% url 'voting:cast_vote' current_vote.id %}" class="btn btn-danger btn-lg w-100">Cast Your Vote</a>
+                        {% endif %}
+                    {% else %}
+                        <a href="{% url 'voting:vote_results' current_vote.id %}" class="btn btn-secondary w-100">View Full Results</a>
+                    {% endif %}
+                {% else %}
+                    <div class="alert alert-warning">
+                        <a href="{% url 'login' %}">Login</a> to cast your vote.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Past Votes -->
+        {% if all_votes %}
+        <div class="card">
+            <div class="card-header">
+                <h5>Voting History</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for vote in all_votes %}
+                <a href="{% url 'voting:vote_results' vote.id %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ vote.get_vote_type_display }}</strong>
+                        <span>
+                            {% if vote.result == 'PASSED' %}
+                                <span class="badge bg-success">Passed</span>
+                            {% elif vote.result == 'FAILED' %}
+                                <span class="badge bg-danger">Failed</span>
+                            {% elif vote.result == 'TIED' %}
+                                <span class="badge bg-warning text-dark">Tied</span>
+                            {% else %}
+                                <span class="badge bg-info">{{ vote.result }}</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <small class="text-muted">
+                        {{ vote.yea_count }} Yea, {{ vote.nay_count }} Nay, {{ vote.abstain_count }} Abstain • 
+                        {{ vote.opened_at|date:"M d, Y" }}
+                    </small>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        {% if user.is_authenticated and user.is_staff %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6>Admin Actions</h6>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'voting:create_vote' bill.id %}" class="btn btn-warning w-100 mb-2">Open New Vote</a>
+                <a href="/admin/voting/bill/{{ bill.id }}/change/" class="btn btn-secondary w-100">Edit Bill</a>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header">
+                <h6>Bill Information</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Bill Number:</strong> {{ bill.bill_number }}</p>
+                <p><strong>Status:</strong> {{ bill.get_status_display }}</p>
+                <p><strong>Chamber:</strong> {{ bill.get_chamber_display }}</p>
+                <p><strong>Created:</strong> {{ bill.created_at|date:"F d, Y" }}</p>
+                <p><strong>Last Updated:</strong> {{ bill.updated_at|date:"F d, Y" }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

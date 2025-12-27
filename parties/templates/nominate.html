@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Nominate for Leadership - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4>Nominate Yourself for Party Leadership</h4>
+                <p class="mb-0">{{ election.party.name }}</p>
+            </div>
+            <div class="card-body">
+                <p><strong>Election:</strong> {{ election.title }}</p>
+                <p><strong>Closes:</strong> {{ election.closes_at|date:"F d, Y g:i A" }}</p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Campaign Platform *</label>
+                        {{ form.platform }}
+                        <small class="form-text text-muted">
+                            Explain your vision for the party. What changes would you make? Why should members vote for you?
+                        </small>
+                        {% if form.platform.errors %}
+                            <div class="text-danger">{{ form.platform.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="alert alert-info">
+                        <h6>Running for Leadership</h6>
+                        <ul class="mb-0">
+                            <li>Your nomination will be visible to all party members</li>
+                            <li>Members can vote for any candidate</li>
+                            <li>The candidate with the most votes wins</li>
+                            <li>You cannot withdraw once nominated</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg flex-grow-1">
+                            Submit Nomination
+                        </button>
+                        <a href="{% url 'parties:election_detail' election.pk %}" class="btn btn-secondary btn-lg">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

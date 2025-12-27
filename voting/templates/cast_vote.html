@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Cast Vote - {{ vote_session.bill.bill_number }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'voting:bill_list' %}">Bills</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'voting:bill_detail' vote_session.bill.id %}">{{ vote_session.bill.bill_number }}</a></li>
+                <li class="breadcrumb-item active">Cast Vote</li>
+            </ol>
+        </nav>
+
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h3>Cast Your Vote</h3>
+            </div>
+            <div class="card-body">
+                <h4>{{ vote_session.bill.bill_number }}: {{ vote_session.bill.title }}</h4>
+                <p class="text-muted">{{ vote_session.get_vote_type_display }}</p>
+                
+                <hr>
+
+                <p><strong>Vote Description:</strong></p>
+                <p>{{ vote_session.description }}</p>
+
+                <hr>
+
+                <p><strong>Bill Summary:</strong></p>
+                <p>{{ vote_session.bill.summary }}</p>
+
+                <hr>
+
+                {% if existing %}
+                <div class="alert alert-info">
+                    <strong>You have already voted:</strong> {{ existing.get_vote_display }}
+                    <br>
+                    <small>You can change your vote below until voting closes.</small>
+                </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label class="form-label"><strong>Your Vote:</strong></label>
+                        <div class="btn-group-vertical w-100" role="group">
+                            {% for value, label in form.vote.field.choices %}
+                            <input type="radio" class="btn-check" name="vote" id="vote_{{ value }}" value="{{ value }}" 
+                                   {% if existing and existing.vote == value %}checked{% endif %} required>
+                            <label class="btn btn-outline-primary btn-lg text-start" for="vote_{{ value }}">
+                                {% if value == 'YEA' %}
+                                    <i class="text-success">✓</i> <strong>{{ label }}</strong> - Vote in favor of this bill
+                                {% elif value == 'NAY' %}
+                                    <i class="text-danger">✗</i> <strong>{{ label }}</strong> - Vote against this bill
+                                {% else %}
+                                    <i class="text-secondary">○</i> <strong>{{ label }}</strong> - Abstain from voting
+                                {% endif %}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <strong>Note:</strong> Your vote will be recorded and may be publicly visible. You can change your vote until voting closes on {{ vote_session.closes_at|date:"F d, Y g:i A" }}.
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger btn-lg flex-grow-1">
+                            {% if existing %}Update Vote{% else %}Cast Vote{% endif %}
+                        </button>
+                        <a href="{% url 'voting:bill_detail' vote_session.bill.id %}" class="btn btn-secondary btn-lg">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Current Results -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>Current Vote Tally</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <h2 class="text-success">{{ vote_session.yea_count }}</h2>
+                        <p class="text-muted">Yea</p>
+                        <div class="progress">
+                          <div class="progress-bar bg-success"
+     style="width: {% if vote_session.total_votes > 0 %}
+         {% widthratio vote_session.yea_count vote_session.total_votes 100 %}%
+     {% else %}0%{% endif %}">
+</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <h2 class="text-danger">{{ vote_session.nay_count }}</h2>
+                        <p class="text-muted">Nay</p>
+                        <div class="progress">
+<div class="progress-bar bg-danger"
+     style="width: {% if vote_session.total_votes > 0 %}
+         {% widthratio vote_session.nay_count vote_session.total_votes 100 %}%
+     {% else %}0%{% endif %}">
+</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <h2 class="text-secondary">{{ vote_session.abstain_count }}</h2>
+                        <p class="text-muted">Abstain</p>
+                        <div class="progress">
+<div class="progress-bar bg-secondary"
+     style="width: {% if vote_session.total_votes > 0 %}
+         {% widthratio vote_session.abstain_count vote_session.total_votes 100 %}%
+     {% else %}0%{% endif %}">
+</div>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-center text-muted mt-3">
+                    <strong>Total Votes Cast:</strong> {{ vote_session.total_votes }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

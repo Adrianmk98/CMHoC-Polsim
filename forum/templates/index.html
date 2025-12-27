@@ -1,0 +1,287 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Home - Canadian PolSim{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-primary text-white">
+            <div class="card-body py-5 text-center">
+                <h1 class="display-3 mb-3">
+                    <img
+                        src="{% static 'images/logored.png' %}"
+                        alt="CMHoC Logo"
+                        style="height: 1.2em; vertical-align: middle; margin-right: 0.4rem;"
+                    >
+                    Canadian Model House of Commons
+                </h1>
+
+                <p class="lead mb-4">
+                    Experience Canadian parliamentary democracy through immersive role-playing.
+                    Debate legislation, form governments, and shape the future of our virtual Canada.
+                </p>
+
+                {% if not user.is_authenticated %}
+                    <a href="{% url 'register' %}" class="btn btn-light btn-lg me-2">Join Now</a>
+                    <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">Login</a>
+                {% else %}
+                    <a href="{% url 'forum_categories' %}" class="btn btn-light btn-lg me-2">Browse Forums</a>
+                    <a href="{% url 'press:create' %}" class="btn btn-outline-light btn-lg">Write Press Release</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Quick Stats -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h2 class="text-primary mb-0">{{ stats.total_threads }}</h2>
+                <p class="mb-0 text-muted">Monthly Debate</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h2 class="text-success mb-0">{{ stats.total_users }}</h2>
+                <p class="mb-0 text-muted">Monthly Press</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h2 class="text-warning mb-0">{{ stats.active_bills }}</h2>
+                <p class="mb-0 text-muted">Active Bills</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h2 class="text-info mb-0">{{ stats.total_parties }}</h2>
+                <p class="mb-0 text-muted">Parties</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Main Content - Press Releases -->
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>📰 Latest Press Releases</h3>
+            <a href="{% url 'press:list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+
+        {% for press in latest_press %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        {% if press.is_featured %}
+                            <span class="badge bg-primary mb-2">Featured</span>
+                        {% endif %}
+                        <h4>
+                            <a href="{% url 'press:detail' press.slug %}" class="text-decoration-none">
+                                {{ press.title }}
+                            </a>
+                        </h4>
+                        <p class="text-muted mb-2">{{ press.excerpt|truncatewords:40 }}</p>
+                        <div class="d-flex align-items-center text-muted small">
+                            <span class="me-3">
+                                <strong>By:</strong> 
+                                <a href="{% url 'press:by_author' press.author.username %}">{{ press.author.username }}</a>
+                            </span>
+                            {% if press.party %}
+                                <span class="me-3">
+                                    <span class="badge" style="background-color: {{ press.party.color }};">
+                                        {{ press.party.abbreviation }}
+                                    </span>
+                                </span>
+                            {% endif %}
+                            <span class="me-3">{{ press.published_at|timesince }} ago</span>
+                            <span>👁️ {{ press.view_count }} views</span>
+                        </div>
+                        {% if press.get_tags_list %}
+                        <div class="mt-2">
+                            {% for tag in press.get_tags_list %}
+                                <a href="{% url 'press:list' %}?tag={{ tag }}" class="badge bg-light text-dark">#{{ tag }}</a>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="alert alert-info">
+            <p class="mb-2"><strong>No press releases yet!</strong></p>
+            <p class="mb-0">Be the first to <a href="{% url 'press:create' %}">publish a press release</a>.</p>
+        </div>
+        {% endfor %}
+
+        {% if latest_press %}
+        <div class="text-center">
+            <a href="{% url 'press:list' %}" class="btn btn-primary">View All Press Releases</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar - Upcoming & Quick Links -->
+    <div class="col-lg-4">
+        <!-- Current Government -->
+        {% if current_cabinet %}
+        <div class="card mb-3">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0">🏛️ Current Government</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>{{ current_cabinet.name }}</strong></p>
+                <p class="mb-2">
+                    <strong>Prime Minister:</strong><br>
+                    <a href="{% url 'user_profile' current_cabinet.prime_minister.user.username %}">
+                        {{ current_cabinet.prime_minister.user.username }}
+                    </a>
+                    {% if current_cabinet.prime_minister.party %}
+                        <br>
+                        <span class="badge" style="background-color: {{ current_cabinet.prime_minister.party.color }};">
+                            {{ current_cabinet.prime_minister.party.name }}
+                        </span>
+                    {% endif %}
+                </p>
+                <p class="mb-0 small text-muted">
+                    Formed: {{ current_cabinet.start_date|date:"F d, Y" }}
+                </p>
+                <a href="{% url 'cabinet_detail' current_cabinet.id %}" class="btn btn-sm btn-success mt-2 w-100">
+                    View Cabinet
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Active Votes -->
+        {% if active_votes %}
+        <div class="card mb-3">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">📜 Active Votes</h6>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for vote in active_votes %}
+                <a href="{% url 'voting:vote_detail' vote.id %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1 small"><strong>{{ vote.bill.bill_number }}</strong></h6>
+                        <span class="badge bg-success">Voting</span>
+                    </div>
+                    <p class="mb-1 small">{{ vote.bill.title|truncatewords:10 }}</p>
+                    <small class="text-muted">Closes: {{ vote.closes_at|date:"M d, g:i A" }}</small>
+                </a>
+                {% endfor %}
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'voting:bill_list' %}" class="btn btn-sm btn-outline-warning w-100">View All Bills</a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Upcoming Elections -->
+        {% if upcoming_elections %}
+        <div class="card mb-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">📊 Upcoming Elections</h6>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for election in upcoming_elections %}
+                <a href="{% url 'elections:election_detail' election.id %}" class="list-group-item list-group-item-action">
+                    <h6 class="mb-1 small">{{ election.name }}</h6>
+                    <small class="text-muted">{{ election.election_date|date:"F d, Y" }}</small>
+                </a>
+                {% endfor %}
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'elections:election_list' %}" class="btn btn-sm btn-outline-info w-100">View Elections</a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Active Party Elections -->
+        {% if party_elections %}
+        <div class="card mb-3">
+            <div class="card-header" style="background-color: #6f42c1; color: white;">
+                <h6 class="mb-0">🎭 Party Leadership Elections</h6>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for election in party_elections %}
+                <a href="{% url 'parties:election_detail' election.id %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between">
+                        <span><strong>{{ election.party.abbreviation }}</strong> Leadership</span>
+                        <span class="badge bg-warning">Voting</span>
+                    </div>
+                    <small class="text-muted">Closes: {{ election.closes_at|date:"M d" }}</small>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Activity -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">🔥 Recent Forum Activity</h6>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for thread in recent_threads %}
+                <a href="{% url 'thread_detail' thread.id %}" class="list-group-item list-group-item-action">
+                    <h6 class="mb-1 small">{{ thread.title|truncatewords:10 }}</h6>
+                    <small class="text-muted">
+                        {{ thread.author.username }} • {{ thread.created_at|timesince }} ago
+                    </small>
+                </a>
+                {% empty %}
+                <div class="list-group-item text-muted small">
+                    No recent activity
+                </div>
+                {% endfor %}
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'forum_categories' %}" class="btn btn-sm btn-outline-secondary w-100">Browse Forums</a>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">🔗 Quick Links</h6>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{% url 'forum_categories' %}" class="list-group-item list-group-item-action">
+                    📋 Forum Categories
+                </a>
+                <a href="{% url 'parties:party_list' %}" class="list-group-item list-group-item-action">
+                    🎭 Political Parties
+                </a>
+                <a href="{% url 'riding_list' %}" class="list-group-item list-group-item-action">
+                    🗳️ Electoral Ridings
+                </a>
+                <a href="{% url 'elections:election_list' %}" class="list-group-item list-group-item-action">
+                    📊 Election Results
+                </a>
+                <a href="{% url 'cabinet_list' %}" class="list-group-item list-group-item-action">
+                    🏛️ Cabinet History
+                </a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'press:create' %}" class="list-group-item list-group-item-action text-primary">
+                        <strong>✍️ Write Press Release</strong>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

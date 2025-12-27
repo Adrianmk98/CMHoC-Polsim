@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ thread.title }} - Canadian PolSim{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'forum_index' %}">Forum</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'category_detail' thread.category.id %}">{{ thread.category.name }}</a></li>
+                <li class="breadcrumb-item active">{{ thread.title }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <h2>{{ thread.title }}</h2>
+        {% if thread.is_locked %}
+            <span class="badge bg-warning">🔒 Locked</span>
+        {% endif %}
+        {% if thread.is_pinned %}
+            <span class="badge bg-info">📌 Pinned</span>
+        {% endif %}
+    </div>
+</div>
+
+<hr>
+
+<!-- Posts -->
+<div class="row">
+    <div class="col-12">
+       {% for post in page_obj %}
+<div class="card mb-3 {% if forloop.first and page_obj.number == 1 %}border-primary shadow{% endif %}">
+    <div class="card-body {% if forloop.first and page_obj.number == 1 %}bg-light{% endif %}">
+        <div class="row">
+            <div class="col-md-2 text-center border-end">
+                <strong>{{ post.author.username }}</strong>
+
+                {% if forloop.first and page_obj.number == 1 %}
+                    <div class="mt-1">
+                        <span class="badge bg-primary">Original Post</span>
+                    </div>
+                {% endif %}
+
+                {% if post.author.profile.party %}
+                    <br>
+                    <span class="party-badge mt-2 d-inline-block"
+                          style="background-color: {{ post.author.profile.party.color }};">
+                        {{ post.author.profile.party.name }}
+                    </span>
+                {% endif %}
+
+                {% if post.author.profile.role %}
+                    <br><small class="text-muted">{{ post.author.profile.role }}</small>
+                {% endif %}
+
+                <br><small class="text-muted">Posts: {{ post.author.posts.count }}</small>
+            </div>
+
+            <div class="col-md-10">
+                <div class="post-box">
+                    <div class="mb-2">
+                        <small class="text-muted">
+                            Posted {{ post.created_at|timesince }} ago
+                            {% if post.is_edited %}
+                                <em>(edited)</em>
+                            {% endif %}
+                        </small>
+                    </div>
+
+                    <div class="{% if forloop.first and page_obj.number == 1 %}fs-5{% endif %}">
+                        {{ post.content|linebreaks }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                    </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Reply Form -->
+{% if user.is_authenticated and not thread.is_locked %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Post a Reply</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-danger">Post Reply</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% elif not user.is_authenticated %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <a href="{% url 'login' %}">Login</a> to reply to this thread.
+        </div>
+    </div>
+</div>
+{% elif thread.is_locked %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-warning">
+            This thread is locked. No new replies can be posted.
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

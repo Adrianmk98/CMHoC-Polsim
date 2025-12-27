@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}Complete Election - {{ election.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'moderator:dashboard' %}">Moderator</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'elections:election_detail' election.id %}">{{ election.name }}</a></li>
+                <li class="breadcrumb-item active">Complete Election</li>
+            </ol>
+        </nav>
+
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h3>✓ Mark Election as Completed</h3>
+            </div>
+            <div class="card-body">
+                <h5>{{ election.name }}</h5>
+                <p class="text-muted">{{ election.election_date|date:"F d, Y" }}</p>
+
+                <hr>
+
+                <h6>Current Status:</h6>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h2>{{ results_with_winners }}</h2>
+                                <p class="mb-0">Ridings with Winners</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h2>{{ results_count }}</h2>
+                                <p class="mb-0">Total Riding Results</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if results_with_winners < results_count %}
+                <div class="alert alert-warning">
+                    <strong>Warning:</strong> Not all ridings have winners assigned. 
+                    <a href="{% url 'moderator:add_results' election.id %}">Add more results</a>
+                </div>
+                {% endif %}
+
+                <div class="alert alert-info">
+                    <h6>What happens when you mark as completed:</h6>
+                    <ul class="mb-0">
+                        <li>Election will be marked as final</li>
+                        <li>Seat totals will be calculated</li>
+                        <li>Vote statistics will be computed</li>
+                        <li>Election will appear in completed elections list</li>
+                        <li>You can still add/edit candidate details after completion</li>
+                    </ul>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success btn-lg flex-grow-1">
+                            ✓ Mark as Completed
+                        </button>
+                        <a href="{% url 'moderator:add_results' election.id %}" class="btn btn-secondary btn-lg">
+                            Continue Editing
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6>Completion Checklist</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li>
+                        {% if results_count > 0 %}
+                            ✅ Riding results added
+                        {% else %}
+                            ⬜ Riding results added
+                        {% endif %}
+                    </li>
+                    <li>
+                        {% if results_with_winners > 0 %}
+                            ✅ Winners assigned
+                        {% else %}
+                            ⬜ Winners assigned
+                        {% endif %}
+                    </li>
+                    <li>⬜ All candidates added (optional, can be done after)</li>
+                    <li>⬜ Vote counts verified</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

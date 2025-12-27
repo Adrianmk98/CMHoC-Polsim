@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+
+{% block title %}Vote Results - {{ vote_session.bill.bill_number }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'voting:bill_list' %}">Bills</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'voting:bill_detail' vote_session.bill.id %}">{{ vote_session.bill.bill_number }}</a></li>
+                <li class="breadcrumb-item active">Vote Results</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Vote Header -->
+        <div class="card mb-3">
+            <div class="card-header {% if vote_session.result == 'PASSED' %}bg-success{% elif vote_session.result == 'FAILED' %}bg-danger{% else %}bg-warning{% endif %} text-white">
+                <h3>{{ vote_session.get_vote_type_display }}</h3>
+                <h4>{{ vote_session.bill.bill_number }}: {{ vote_session.bill.title }}</h4>
+            </div>
+            <div class="card-body">
+                <p>{{ vote_session.description }}</p>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Opened:</strong> {{ vote_session.opened_at|date:"F d, Y g:i A" }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Closed:</strong> {{ vote_session.closes_at|date:"F d, Y g:i A" }}
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Status:</strong> 
+                        {% if vote_session.is_open %}
+                            <span class="badge bg-success">Open</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Closed</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Result:</strong>
+                        {% if vote_session.result == 'PASSED' %}
+                            <span class="badge bg-success">✓ PASSED</span>
+                        {% elif vote_session.result == 'FAILED' %}
+                            <span class="badge bg-danger">✗ FAILED</span>
+                        {% elif vote_session.result == 'TIED' %}
+                            <span class="badge bg-warning text-dark">TIED</span>
+                        {% else %}
+                            <span class="badge bg-info">{{ vote_session.result }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vote Summary -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>Vote Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center mb-4">
+                    <div class="col-4">
+                        <h1 class="text-success">{{ vote_session.yea_count }}</h1>
+                        <h5 class="text-muted">Yea</h5>
+                        <div class="progress" style="height: 30px;">
+                            <div class="progress-bar bg-success" style="width: {% if vote_session.total_votes > 0 %}{% widthratio vote_session.yea_count vote_session.total_votes 100 %}%{% else %}0%{% endif %}">
+                                {% if vote_session.total_votes > 0 %}{% widthratio vote_session.yea_count vote_session.total_votes 100 %}%{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <h1 class="text-danger">{{ vote_session.nay_count }}</h1>
+                        <h5 class="text-muted">Nay</h5>
+                        <div class="progress" style="height: 30px;">
+                            <div class="progress-bar bg-danger" style="width: {% if vote_session.total_votes > 0 %}{% widthratio vote_session.nay_count vote_session.total_votes 100 %}%{% else %}0%{% endif %}">
+                                {% if vote_session.total_votes > 0 %}{% widthratio vote_session.nay_count vote_session.total_votes 100 %}%{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <h1 class="text-secondary">{{ vote_session.abstain_count }}</h1>
+                        <h5 class="text-muted">Abstain</h5>
+                        <div class="progress" style="height: 30px;">
+                            <div class="progress-bar bg-secondary" style="width: {% if vote_session.total_votes > 0 %}{% widthratio vote_session.abstain_count vote_session.total_votes 100 %}%{% else %}0%{% endif %}">
+                                {% if vote_session.total_votes > 0 %}{% widthratio vote_session.abstain_count vote_session.total_votes 100 %}%{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-secondary text-center">
+                    <h4 class="mb-0">Total Votes Cast: {{ vote_session.total_votes }}</h4>
+                </div>
+            </div>
+        </div>
+
+        <!-- Individual Votes - Yea -->
+        {% if yea_votes %}
+        <div class="card mb-3">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Yea Votes ({{ yea_votes.count }})</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for ballot in yea_votes %}
+                <div class="list-group-item">
+                    <strong>{{ ballot.voter.username }}</strong>
+                    {% if ballot.voter.profile.party %}
+                        <span class="party-badge ms-2" style="background-color: {{ ballot.voter.profile.party.color }};">
+                            {{ ballot.voter.profile.party.name }}
+                        </span>
+                    {% endif %}
+                    {% if ballot.voter.profile.riding %}
+                        <small class="text-muted ms-2">({{ ballot.voter.profile.riding }})</small>
+                    {% endif %}
+                    <small class="float-end text-muted">{{ ballot.cast_at|date:"M d, g:i A" }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Individual Votes - Nay -->
+        {% if nay_votes %}
+        <div class="card mb-3">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">Nay Votes ({{ nay_votes.count }})</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for ballot in nay_votes %}
+                <div class="list-group-item">
+                    <strong>{{ ballot.voter.username }}</strong>
+                    {% if ballot.voter.profile.party %}
+                        <span class="party-badge ms-2" style="background-color: {{ ballot.voter.profile.party.color }};">
+                            {{ ballot.voter.profile.party.name }}
+                        </span>
+                    {% endif %}
+                    {% if ballot.voter.profile.riding %}
+                        <small class="text-muted ms-2">({{ ballot.voter.profile.riding }})</small>
+                    {% endif %}
+                    <small class="float-end text-muted">{{ ballot.cast_at|date:"M d, g:i A" }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Individual Votes - Abstain -->
+        {% if abstain_votes %}
+        <div class="card mb-3">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Abstentions ({{ abstain_votes.count }})</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for ballot in abstain_votes %}
+                <div class="list-group-item">
+                    <strong>{{ ballot.voter.username }}</strong>
+                    {% if ballot.voter.profile.party %}
+                        <span class="party-badge ms-2" style="background-color: {{ ballot.voter.profile.party.color }};">
+                            {{ ballot.voter.profile.party.name }}
+                        </span>
+                    {% endif %}
+                    {% if ballot.voter.profile.riding %}
+                        <small class="text-muted ms-2">({{ ballot.voter.profile.riding }})</small>
+                    {% endif %}
+                    <small class="float-end text-muted">{{ ballot.cast_at|date:"M d, g:i A" }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6>Actions</h6>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'voting:bill_detail' vote_session.bill.id %}" class="btn btn-primary w-100 mb-2">Back to Bill</a>
+                {% if vote_session.is_open and user.is_authenticated %}
+                    <a href="{% url 'voting:cast_vote' vote_session.id %}" class="btn btn-danger w-100">Cast/Change Vote</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6>Vote Statistics</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Type:</strong> {{ vote_session.get_vote_type_display }}</p>
+                <p><strong>Total Ballots:</strong> {{ vote_session.total_votes }}</p>
+                <p><strong>Opened:</strong> {{ vote_session.opened_at|date:"M d, Y" }}</p>
+                <p><strong>Closed:</strong> {{ vote_session.closes_at|date:"M d, Y" }}</p>
+                <p><strong>Opened By:</strong> {{ vote_session.created_by.username }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

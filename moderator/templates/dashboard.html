@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}Moderator Dashboard - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>⚙️ Moderator Dashboard</h2>
+        <p class="lead">Manage elections, cabinet, bills, and more</p>
+    </div>
+</div>
+
+<!-- Permission Cards -->
+<div class="row mb-4">
+    {% if permissions.can_manage_elections %}
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">📊 Elections</h5>
+            </div>
+            <div class="card-body">
+                {% if total_elections %}
+                <p><strong>Total Elections:</strong> {{ total_elections }}</p>
+                <p><strong>Completed:</strong> {{ completed_elections }}</p>
+                <p><strong>In Progress:</strong> {{ pending_elections }}</p>
+                {% endif %}
+                <a href="{% url 'moderator:election_dashboard' %}" class="btn btn-primary w-100">
+                    Manage Elections
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if permissions.can_manage_cabinet %}
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">🏛️ Cabinet</h5>
+            </div>
+            <div class="card-body">
+                {% if total_cabinets %}
+                <p><strong>Total Cabinets:</strong> {{ total_cabinets }}</p>
+                {% if current_cabinet %}
+                <p><strong>Current:</strong> {{ current_cabinet.name }}</p>
+                {% endif %}
+                {% endif %}
+                <a href="{% url 'moderator:cabinet_dashboard' %}" class="btn btn-success w-100">
+                    Manage Cabinet
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if permissions.can_manage_bills %}
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">📜 Bills & Votes</h5>
+            </div>
+            <div class="card-body">
+                {% if total_bills %}
+                <p><strong>Total Bills:</strong> {{ total_bills }}</p>
+                <p><strong>Active Votes:</strong> {{ active_votes }}</p>
+                {% endif %}
+                <a href="{% url 'moderator:bill_dashboard' %}" class="btn btn-warning w-100">
+                    Manage Bills
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Recent Elections (if permission) -->
+{% if permissions.can_manage_elections and recent_elections %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>Recent Elections</h4>
+    </div>
+    <div class="list-group list-group-flush">
+        {% for election in recent_elections %}
+        <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="mb-1">
+                        {{ election.name }}
+                        {% if not election.is_completed %}
+                            <span class="badge bg-warning text-dark">In Progress</span>
+                        {% else %}
+                            <span class="badge bg-success">Completed</span>
+                        {% endif %}
+                    </h6>
+                    <small class="text-muted">
+                        {{ election.election_date|date:"F d, Y" }}
+                        • {{ election.get_election_type_display }}
+                        {% if election.total_seats > 0 %}
+                            • {{ election.total_seats }} seats
+                        {% endif %}
+                    </small>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'elections:election_detail' election.id %}" class="btn btn-sm btn-outline-primary">
+                        View
+                    </a>
+                    {% if not election.is_completed %}
+                    <a href="{% url 'moderator:add_results' election.id %}" class="btn btn-sm btn-outline-warning">
+                        Add Results
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Quick Links -->
+<div class="card">
+    <div class="card-header">
+        <h4>Quick Links</h4>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Public Pages</h6>
+                <ul>
+                    <li><a href="{% url 'forum_index' %}">Forum Home</a></li>
+                    <li><a href="{% url 'elections:election_list' %}">Elections</a></li>
+                    <li><a href="{% url 'cabinet_list' %}">Cabinet</a></li>
+                    <li><a href="{% url 'voting:bill_list' %}">Bills & Votes</a></li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6>Your Permissions</h6>
+                <ul>
+                    <li>{% if permissions.can_manage_elections %}✅{% else %}❌{% endif %} Manage Elections</li>
+                    <li>{% if permissions.can_manage_cabinet %}✅{% else %}❌{% endif %} Manage Cabinet</li>
+                    <li>{% if permissions.can_manage_bills %}✅{% else %}❌{% endif %} Manage Bills</li>
+                    <li>{% if permissions.can_manage_users %}✅{% else %}❌{% endif %} Manage Users</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

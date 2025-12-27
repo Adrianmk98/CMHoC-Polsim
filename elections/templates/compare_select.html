@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Compare Elections - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'elections:election_list' %}">Elections</a></li>
+                <li class="breadcrumb-item active">Compare Elections</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3>📊 Compare Elections</h3>
+            </div>
+            <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">
+                    {{ error }}
+                </div>
+                {% endif %}
+
+                <p class="lead">Select 2 or more federal elections to compare their results.</p>
+
+                <form method="get" action="{% url 'elections:compare_elections' %}">
+                    <div class="mb-4">
+                        <h5>Select Elections to Compare:</h5>
+                        <p class="text-muted">Check at least 2 elections</p>
+                        
+                        {% if all_elections %}
+                        <div class="list-group">
+                            {% for election in all_elections %}
+                            <label class="list-group-item">
+                                <input class="form-check-input me-2" type="checkbox" name="elections" value="{{ election.id }}" id="election_{{ election.id }}">
+                                <strong>{{ election.name }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    {{ election.election_date|date:"F d, Y" }}
+                                    {% if election.total_seats > 0 %}
+                                        • {{ election.total_seats }} seats
+                                    {% endif %}
+                                </small>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <p class="mb-0">No completed federal elections found to compare.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if all_elections %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg flex-grow-1">Compare Selected Elections</button>
+                        <a href="{% url 'elections:election_list' %}" class="btn btn-secondary btn-lg">Cancel</a>
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        {% if all_elections %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6>💡 Comparison Tips</h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li><strong>Select 2-4 elections</strong> for best results</li>
+                    <li><strong>Compare consecutive elections</strong> to see swings</li>
+                    <li><strong>Compare different eras</strong> to see long-term trends</li>
+                    <li>Results will show seat changes and party performance</li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Validate at least 2 selections
+document.querySelector('form').addEventListener('submit', function(e) {
+    const checkboxes = document.querySelectorAll('input[name="elections"]:checked');
+    if (checkboxes.length < 2) {
+        e.preventDefault();
+        alert('Please select at least 2 elections to compare.');
+    }
+});
+</script>
+
+{% endblock %}

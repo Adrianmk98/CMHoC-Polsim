@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ election.name }} - Elections{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'elections:election_list' %}">Elections</a></li>
+                <li class="breadcrumb-item active">{{ election.name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<!-- Election Header -->
+<div class="card mb-4">
+    <div class="card-header {% if election.is_federal %}bg-danger{% else %}bg-secondary{% endif %} text-white">
+        <h2 class="mb-0">
+            {{ election.name }}
+            {% if not election.is_completed %}
+                <span class="badge bg-warning text-dark">In Progress</span>
+            {% endif %}
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Date:</strong> {{ election.election_date|date:"F d, Y" }}</p>
+                <p><strong>Type:</strong> {{ election.get_election_type_display }}</p>
+                {% if election.is_by_election and election.riding %}
+                    <p><strong>Riding:</strong> <a href="{% url 'riding_detail' election.riding.id %}">{{ election.riding.name }}</a></p>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <p><strong>Total Seats:</strong> {{ completed_ridings }} / {{ total_ridings }}</p>
+                {% if total_votes > 0 %}
+                    <p><strong>Total Votes Cast:</strong> {{ total_votes }}</p>
+                {% endif %}
+                {% if election.voter_turnout %}
+                    <p><strong>Voter Turnout:</strong> {{ election.voter_turnout }}%</p>
+                {% endif %}
+            </div>
+        </div>
+        {% if election.description %}
+            <hr>
+            <p>{{ election.description }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Seat Totals -->
+{% if seat_totals %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>🏆 Seat Distribution</h4>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for party_data in seat_totals %}
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card text-center">
+                    <div class="card-body" style="background-color: {{ party_data.party_color }}20;">
+                        <h1 style="color: {{ party_data.party_color }};">{{ party_data.seats }}</h1>
+                        <h6>{{ party_data.party_name }}</h6>
+                        {% if total_votes > 0 %}
+                            <small class="text-muted">{{ party_data.votes }} votes</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Visual seat bar -->
+        <div class="progress" style="height: 40px;">
+            {% for party_data in seat_totals %}
+                {% widthratio party_data.seats total_ridings 100 as percentage %}
+                <div class="progress-bar" 
+                     style="width: {{ percentage }}%; background-color: {{ party_data.party_color }};"
+                     title="{{ party_data.party_name }}: {{ party_data.seats }} seats">
+                    {% if percentage > 5 %}{{ party_data.seats }}{% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <p class="text-center text-muted mt-2">
+            <small>170 seats needed for majority (out of {{ total_ridings }} total)</small>
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Riding Results by Province -->
+<div class="card">
+    <div class="card-header">
+        <h4>📍 Results by Riding</h4>
+    </div>
+    <div class="card-body">
+        {% for province, results in results_by_province.items %}
+        <h5 class="mt-3">{{ province }}</h5>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Riding</th>
+                        <th>Winner</th>
+                        <th>Party</th>
+                        <th>Votes</th>
+                        <th>Turnout</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'riding_detail' result.riding.id %}">
+                                {{ result.riding.name }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if result.winner %}
+                                <a href="{% url 'user_profile' result.winner.user.id %}">
+                                    {{ result.winner.user.username }}
+                                </a>
+                                {% if result.is_acclaimed %}
+                                    <span class="badge bg-info">Acclaimed</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">Not decided</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if result.winning_party %}
+                                <span class="party-badge" style="background-color: {{ result.winning_party.color }};">
+                                    {{ result.winning_party.name }}
+                                </span>
+                                {% if result.is_party_gain %}
+                                    <span class="badge bg-success">GAIN</span>
+                                {% elif result.is_party_hold %}
+                                    <span class="badge bg-primary">HOLD</span>
+                                {% endif %}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if result.total_votes_cast > 0 %}
+                                {{ result.total_votes_cast }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if result.turnout_percentage %}
+                                {{ result.turnout_percentage|floatformat:1 }}%
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'elections:riding_result_detail' result.id %}" class="btn btn-sm btn-outline-primary">
+                                Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.party-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.85em;
+}
+</style>
+{% endblock %}

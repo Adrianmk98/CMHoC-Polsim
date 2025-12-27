@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ profile_user.username }}'s Profile{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4">
+        <!-- Profile Card -->
+        <div class="card mb-3">
+            <div class="card-body text-center">
+                <h3>{{ profile_user.username }}</h3>
+                
+                {% if profile.party %}
+                    <span class="party-badge mt-2 d-inline-block" style="background-color: {{ profile.party.color }};">
+                        {{ profile.party.get_name_display }}
+                    </span>
+                {% endif %}
+                
+                {% if profile.role %}
+                    <p class="mt-2"><strong>Current Role:</strong> {{ profile.role }}</p>
+                {% endif %}
+                
+                {% if profile.get_riding_display %}
+                    <p><strong>Riding:</strong> {{ profile.get_riding_display }}</p>
+                {% endif %}
+                
+                {% if profile.bio %}
+                    <hr>
+                    <p class="text-muted">{{ profile.bio }}</p>
+                {% endif %}
+                
+                <hr>
+                <p class="text-muted">
+                    <small>Member since: {{ profile.joined_date|date:"F Y" }}</small>
+                </p>
+            </div>
+        </div>
+
+        <!-- Player Statistics -->
+        {% if history %}
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">📊 Player Statistics</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6>Voting Record</h6>
+                    <ul class="list-unstyled">
+                        <li><strong>Total Votes:</strong> {{ history.total_votes }}</li>
+                        <li><span class="text-success">✓ Yea:</span> {{ history.yea_votes }}</li>
+                        <li><span class="text-danger">✗ Nay:</span> {{ history.nay_votes }}</li>
+                        <li><span class="text-secondary">○ Abstain:</span> {{ history.abstain_votes }}</li>
+                    </ul>
+                </div>
+
+                <div class="mb-3">
+                    <h6>Legislative Activity</h6>
+                    <ul class="list-unstyled">
+                        <li><strong>Bills Sponsored:</strong> {{ history.bills_sponsored }}</li>
+                        <li><span class="text-success">✓ Passed:</span> {{ history.bills_passed }}</li>
+                        <li><span class="text-danger">✗ Failed:</span> {{ history.bills_failed }}</li>
+                    </ul>
+                </div>
+
+                <div class="mb-3">
+                    <h6>Forum Activity</h6>
+                    <ul class="list-unstyled">
+                        <li><strong>Threads:</strong> {{ history.threads_created }}</li>
+                        <li><strong>Posts:</strong> {{ history.posts_made }}</li>
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-lg-8">
+        <!-- Political Career History -->
+        <div class="card mb-3">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">🏛️ Political Career</h5>
+            </div>
+            <div class="card-body">
+                {% if profile.all_positions %}
+                    <h6>Positions Held</h6>
+                    <div class="timeline">
+                        {% for position in profile.all_positions %}
+                        <div class="card mb-2 {% if position.is_current %}border-success{% endif %}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            {{ position.position_title }}
+                                            {% if position.is_current %}
+                                                <span class="badge bg-success">Current</span>
+                                            {% endif %}
+                                        </h6>
+                                        <p class="mb-1 text-muted">
+                                            <small>{{ position.get_position_type_display }}</small>
+                                        </p>
+                                        {% if position.get_riding_display %}
+                                            <p class="mb-1"><small><strong>Riding:</strong> {{ position.get_riding_display }}</small></p>
+                                        {% endif %}
+                                        {% if position.notes %}
+                                            <p class="mb-1 text-muted"><small>{{ position.notes }}</small></p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-end text-muted">
+                                        <small>
+                                            {{ position.start_date|date:"M Y" }} - 
+                                            {% if position.end_date %}
+                                                {{ position.end_date|date:"M Y" }}
+                                            {% else %}
+                                                Present
+                                            {% endif %}
+                                            <br>
+                                            <em>({{ position.duration }})</em>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No position history recorded yet.</p>
+                {% endif %}
+
+                <hr>
+
+                <h6>Party Affiliations</h6>
+                {% if profile.party_history.all %}
+                    <div class="timeline">
+                        {% for affiliation in profile.party_history.all %}
+                        <div class="card mb-2 {% if affiliation.is_current %}border-primary{% endif %}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            {% if affiliation.party %}
+                                                <span class="party-badge" style="background-color: {{ affiliation.party.color }};">
+                                                    {{ affiliation.party.get_name_display }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Independent</span>
+                                            {% endif %}
+                                            {% if affiliation.is_current %}
+                                                <span class="badge bg-success ms-2">Current</span>
+                                            {% endif %}
+                                        </h6>
+                                    </div>
+                                    <div class="text-end text-muted">
+                                        <small>
+                                            {{ affiliation.start_date|date:"M Y" }} - 
+                                            {% if affiliation.end_date %}
+                                                {{ affiliation.end_date|date:"M Y" }}
+                                            {% else %}
+                                                Present
+                                            {% endif %}
+                                            <br>
+                                            <em>({{ affiliation.duration }})</em>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No party affiliation history recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>Recent Activity</h5>
+            </div>
+            <div class="card-body">
+                <!-- Recent Threads -->
+                {% if recent_threads %}
+                <h6>Recent Threads</h6>
+                <div class="list-group mb-3">
+                    {% for thread in recent_threads %}
+                    <a href="{% url 'thread_detail' thread.id %}" class="list-group-item list-group-item-action">
+                        {% if thread.flair %}
+                            <span class="badge" style="background-color: {{ thread.flair.color }};">
+                                {{ thread.flair.name }}
+                            </span>
+                        {% endif %}
+                        <strong>{{ thread.title }}</strong>
+                        <br>
+                        <small class="text-muted">
+                            in {{ thread.category.name }} • {{ thread.created_at|timesince }} ago
+                        </small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Recent Posts -->
+                {% if recent_posts %}
+                <h6>Recent Posts</h6>
+                <div class="list-group mb-3">
+                    {% for post in recent_posts %}
+                    <a href="{% url 'thread_detail' post.thread.id %}" class="list-group-item list-group-item-action">
+                        <strong>{{ post.thread.title }}</strong>
+                        <br>
+                        <small class="text-muted">
+                            {{ post.content|truncatewords:20 }}
+                        </small>
+                        <br>
+                        <small class="text-muted">{{ post.created_at|timesince }} ago</small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Recent Votes -->
+                {% if recent_votes %}
+                <h6>Recent Votes</h6>
+                <div class="list-group">
+                    {% for ballot in recent_votes %}
+                    <a href="{% url 'voting:bill_detail' ballot.vote_session.bill.id %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ ballot.vote_session.bill.bill_number }}: {{ ballot.vote_session.bill.title|truncatewords:8 }}</strong>
+                            <span class="badge 
+                                {% if ballot.vote == 'YEA' %}bg-success
+                                {% elif ballot.vote == 'NAY' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ ballot.get_vote_display }}
+                            </span>
+                        </div>
+                        <small class="text-muted">
+                            {{ ballot.vote_session.get_vote_type_display }} • {{ ballot.cast_at|timesince }} ago
+                        </small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+}
+
+.timeline .card {
+    transition: all 0.3s ease;
+}
+
+.timeline .card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.party-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.9em;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Notification Preferences - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'notifications:notification_list' %}">Notifications</a></li>
+                <li class="breadcrumb-item active">Preferences</li>
+            </ol>
+        </nav>
+
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3>⚙️ Notification Preferences</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <h5>In-App Notifications</h5>
+                    <p class="text-muted">Control which events trigger notifications on the website</p>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="notify_cabinet_change" id="notify_cabinet_change" {% if preferences.notify_cabinet_change %}checked{% endif %}>
+                        <label class="form-check-label" for="notify_cabinet_change">
+                            <strong>Cabinet Changes</strong> - Notify when appointed to or removed from cabinet
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="notify_vote_opened" id="notify_vote_opened" {% if preferences.notify_vote_opened %}checked{% endif %}>
+                        <label class="form-check-label" for="notify_vote_opened">
+                            <strong>Vote Opened</strong> - Notify when a new vote opens (MPs only)
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="notify_vote_closing" id="notify_vote_closing" {% if preferences.notify_vote_closing %}checked{% endif %}>
+                        <label class="form-check-label" for="notify_vote_closing">
+                            <strong>Vote Closing Soon</strong> - Notify when you haven't voted and vote is closing
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="notify_bill_updates" id="notify_bill_updates" {% if preferences.notify_bill_updates %}checked{% endif %}>
+                        <label class="form-check-label" for="notify_bill_updates">
+                            <strong>Bill Updates</strong> - Notify about your sponsored bills
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="notify_thread_reply" id="notify_thread_reply" {% if preferences.notify_thread_reply %}checked{% endif %}>
+                        <label class="form-check-label" for="notify_thread_reply">
+                            <strong>Thread Replies</strong> - Notify when someone replies to your threads
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" name="notify_mention" id="notify_mention" {% if preferences.notify_mention %}checked{% endif %}>
+                        <label class="form-check-label" for="notify_mention">
+                            <strong>Mentions</strong> - Notify when someone mentions you
+                        </label>
+                    </div>
+
+                    <hr>
+
+                    <h5>Email Notifications</h5>
+                    <p class="text-muted">Control which events send email notifications (Coming Soon)</p>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="email_on_cabinet_change" id="email_on_cabinet_change" {% if preferences.email_on_cabinet_change %}checked{% endif %} disabled>
+                        <label class="form-check-label text-muted" for="email_on_cabinet_change">
+                            <strong>Cabinet Changes</strong> - Email when appointed/removed
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="email_on_vote_opened" id="email_on_vote_opened" {% if preferences.email_on_vote_opened %}checked{% endif %} disabled>
+                        <label class="form-check-label text-muted" for="email_on_vote_opened">
+                            <strong>Vote Opened</strong> - Email when votes open
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="email_on_vote_closing" id="email_on_vote_closing" {% if preferences.email_on_vote_closing %}checked{% endif %} disabled>
+                        <label class="form-check-label text-muted" for="email_on_vote_closing">
+                            <strong>Vote Closing</strong> - Email reminder before votes close
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="email_on_thread_reply" id="email_on_thread_reply" {% if preferences.email_on_thread_reply %}checked{% endif %} disabled>
+                        <label class="form-check-label text-muted" for="email_on_thread_reply">
+                            <strong>Thread Replies</strong> - Email on thread replies
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" name="email_on_mention" id="email_on_mention" {% if preferences.email_on_mention %}checked{% endif %} disabled>
+                        <label class="form-check-label text-muted" for="email_on_mention">
+                            <strong>Mentions</strong> - Email when mentioned
+                        </label>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg flex-grow-1">Save Preferences</button>
+                        <a href="{% url 'notifications:notification_list' %}" class="btn btn-secondary btn-lg">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6>💡 About Notifications</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>In-App Notifications:</strong> Appear in your notification bell on the website</p>
+                <p><strong>Email Notifications:</strong> Coming soon - will send emails to your registered address</p>
+                <p class="mb-0"><strong>Managing:</strong> You can mark notifications as read or delete them from your notification list</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

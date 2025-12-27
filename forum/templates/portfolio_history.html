@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ portfolio }} - Portfolio History{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'forum_index' %}">Forum</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'cabinet_list' %}">Cabinet</a></li>
+                <li class="breadcrumb-item active">{{ portfolio }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">Minister of {{ portfolio }}</h3>
+                <p class="mb-0">Complete History</p>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    This page shows all ministers who have held this portfolio throughout history.
+                </p>
+            </div>
+        </div>
+
+        {% if positions %}
+        <div class="card">
+            <div class="card-header">
+                <h5>📜 Ministers</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    {% for position in positions %}
+                    <div class="card mb-3 {% if position.is_current %}border-success{% endif %}">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h6 class="mb-1">
+                                        <a href="{% url 'user_profile' position.user_profile.user.username %}">
+                                            {{ position.user_profile.user.username }}
+                                        </a>
+                                        {% if position.is_current %}
+                                            <span class="badge bg-success">Current</span>
+                                        {% endif %}
+                                    </h6>
+                                    <p class="mb-1"><strong>{{ position.title }}</strong></p>
+                                    {% if position.user_profile.party %}
+                                        <span class="party-badge" style="background-color: {{ position.user_profile.party.color }};">
+                                            {{ position.user_profile.party.get_name_display }}
+                                        </span>
+                                    {% endif %}
+                                    {% if position.user_profile.riding %}
+                                        <br><small class="text-muted">MP for {{ position.user_profile.get_riding_display }}</small>
+                                    {% endif %}
+                                    <br>
+                                    <small class="text-muted">
+                                        Cabinet: <a href="{% url 'cabinet_detail' position.cabinet.id %}">{{ position.cabinet.name }}</a>
+                                    </small>
+                                    {% if position.notes %}
+                                        <p class="mt-2 mb-0 text-muted"><small>{{ position.notes }}</small></p>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <small class="text-muted">
+                                        {{ position.start_date|date:"M d, Y" }} - 
+                                        {% if position.end_date %}
+                                            {{ position.end_date|date:"M d, Y" }}
+                                        {% else %}
+                                            Present
+                                        {% endif %}
+                                        <br>
+                                        <em>({{ position.duration }})</em>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            No historical data for this portfolio yet.
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6>Portfolio Information</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Portfolio:</strong> {{ portfolio }}</p>
+                <p><strong>Total Ministers:</strong> {{ positions.count }}</p>
+                {% if positions %}
+                    <p><strong>First Appointed:</strong> {{ positions.last.start_date|date:"M d, Y" }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6>Actions</h6>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'cabinet_list' %}" class="btn btn-outline-primary w-100">
+                    Back to Cabinet
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.party-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.85em;
+}
+
+.timeline .card {
+    transition: all 0.3s ease;
+}
+
+.timeline .card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}

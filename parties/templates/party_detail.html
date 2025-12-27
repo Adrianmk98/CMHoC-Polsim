@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ party.name }} - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Party Header -->
+        <div class="card mb-4" style="border-top: 5px solid {{ party.color }};">
+            <div class="card-body">
+                <h1>{{ party.name }}</h1>
+                <h4 class="text-muted">{{ party.abbreviation }}</h4>
+                <p class="mb-2"><strong>Ideology:</strong> {{ party.get_ideology_display }}</p>
+                <p class="mb-2"><strong>Founded:</strong> {{ party.founded_date|date:"F d, Y" }}</p>
+                <p class="mb-3"><strong>Members:</strong> {{ party.member_count }}</p>
+                
+                {% if party.platform %}
+                <h5>Platform</h5>
+                <p>{{ party.platform|linebreaks }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Active Elections/Votes -->
+        {% if active_election %}
+        <div class="card mb-4 border-warning">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0">⚡ Active Leadership Election</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>{{ active_election.title }}</strong></p>
+                <p class="mb-2">{{ active_election.description }}</p>
+                <p class="small text-muted">Closes: {{ active_election.closes_at|date:"F d, Y g:i A" }}</p>
+                <a href="{% url 'parties:election_detail' active_election.pk %}" class="btn btn-warning">
+                    View Election & Vote
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if active_confidence %}
+        <div class="card mb-4 border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">🚨 Vote of No Confidence</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Against:</strong> {{ active_confidence.target_leader.username }}</p>
+                <p class="mb-2"><strong>Reason:</strong> {{ active_confidence.reason|truncatewords:30 }}</p>
+                <p class="small text-muted">Closes: {{ active_confidence.closes_at|date:"F d, Y g:i A" }}</p>
+                <a href="{% url 'parties:confidence_vote_detail' active_confidence.pk %}" class="btn btn-danger">
+                    View & Vote
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Leadership -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">👥 Leadership</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for role in leadership %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>{{ role.get_role_display }}</strong><br>
+                            <a href="{% url 'user_profile' role.user.username %}">{{ role.user.username }}</a>
+                        </div>
+                        <small class="text-muted">Since {{ role.appointed_at|date:"M d, Y" }}</small>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="list-group-item text-muted">
+                    No leadership positions filled yet.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Members -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">👤 Members ({{ members.count }})</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for membership in members %}
+                    <div class="col-md-6 mb-2">
+                        <a href="{% url 'user_profile' membership.user.username %}">
+                            {{ membership.user.username }}
+                        </a>
+                        {% if membership.is_founding_member %}
+                            <span class="badge bg-primary">Founder</span>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <p class="text-muted mb-0">No members yet.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="col-lg-4">
+        <!-- Membership Actions -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">Actions</h6>
+            </div>
+            <div class="card-body">
+                {% if user.is_authenticated %}
+                    {% if is_member %}
+                        <div class="alert alert-success">
+                            ✓ You are a member
+                        </div>
+                        
+                        {% if can_manage %}
+                            <a href="{% url 'parties:manage_requests' party.pk %}" class="btn btn-primary w-100 mb-2">
+                                ⚙️ Manage Join Requests
+                            </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'parties:initiate_confidence' party.pk %}" class="btn btn-outline-danger w-100 mb-2">
+                            🚨 Initiate No Confidence Vote
+                        </a>
+                        
+                        <a href="{% url 'parties:leave' party.pk %}" class="btn btn-outline-secondary w-100">
+                            Leave Party
+                        </a>
+                    {% elif pending_request %}
+                        <div class="alert alert-info">
+                            ⏳ Your join request is pending
+                        </div>
+                    {% else %}
+                        <a href="{% url 'parties:join' party.pk %}" class="btn btn-primary w-100">
+                            Join This Party
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <p class="text-muted small">Login to join this party</p>
+                    <a href="{% url 'login' %}" class="btn btn-primary w-100">Login</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Party Stats -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Statistics</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Total Members:</strong> {{ party.member_count }}</p>
+                <p><strong>Founded:</strong> {{ party.founded_date|date:"F d, Y" }}</p>
+                <p class="mb-0"><strong>Status:</strong> 
+                    {% if party.is_active %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

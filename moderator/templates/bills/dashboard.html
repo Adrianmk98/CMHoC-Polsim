@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Bill Management - Moderator{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'moderator:dashboard' %}">Moderator</a></li>
+                <li class="breadcrumb-item active">Bills</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header bg-warning text-dark">
+        <h3>📜 Bill & Vote Management</h3>
+    </div>
+    <div class="card-body">
+        <h5>Active Votes</h5>
+        {% if active_votes %}
+        <div class="list-group">
+            {% for vote in active_votes %}
+            <a href="{% url 'voting:vote_detail' vote.id %}" class="list-group-item list-group-item-action">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <strong>{{ vote.bill.bill_number }}: {{ vote.bill.title }}</strong><br>
+                        <small class="text-muted">{{ vote.get_vote_type_display }} • Closes: {{ vote.closes_at|date:"M d, Y" }}</small>
+                    </div>
+                    <span class="badge bg-success">Active</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted">No active votes.</p>
+        {% endif %}
+
+        <hr>
+
+        <h5>All Bills</h5>
+        <div class="list-group">
+            {% for bill in bills|slice:":10" %}
+            <a href="{% url 'voting:bill_detail' bill.id %}" class="list-group-item list-group-item-action">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <strong>{{ bill.bill_number }}: {{ bill.title }}</strong><br>
+                        <small class="text-muted">Sponsor: {{ bill.sponsor.username }} • {{ bill.created_at|date:"M d, Y" }}</small>
+                    </div>
+                    <span class="badge bg-{{ bill.status|lower }}">{{ bill.get_status_display }}</span>
+                </div>
+            </a>
+            {% empty %}
+            <div class="list-group-item">
+                <p class="text-muted mb-0">No bills submitted yet.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <a href="{% url 'voting:bill_list' %}" class="btn btn-primary mt-3">
+            View All Bills
+        </a>
+    </div>
+</div>
+
+<div class="mt-3">
+    <a href="{% url 'moderator:dashboard' %}" class="btn btn-secondary">
+        Back to Dashboard
+    </a>
+</div>
+
+{% endblock %}

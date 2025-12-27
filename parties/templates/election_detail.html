@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ election.title }} - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3>{{ election.title }}</h3>
+                <p class="mb-0">{{ election.party.name }} Leadership Election</p>
+            </div>
+            <div class="card-body">
+                {% if election.description %}
+                <p>{{ election.description }}</p>
+                {% endif %}
+                
+                <p><strong>Trigger:</strong> {{ election.get_trigger_display }}</p>
+                <p><strong>Opens:</strong> {{ election.opens_at|date:"F d, Y g:i A" }}</p>
+                <p><strong>Closes:</strong> {{ election.closes_at|date:"F d, Y g:i A" }}</p>
+                
+                {% if election.is_completed %}
+                    <div class="alert alert-success">
+                        <h5>✓ Election Completed</h5>
+                        <p><strong>Winner:</strong> {{ election.winner.username }}</p>
+                        <p class="mb-0"><strong>Total Votes:</strong> {{ election.total_votes }}</p>
+                    </div>
+                {% elif election.is_open %}
+                    <div class="alert alert-warning">
+                        <strong>⚡ Voting is Open!</strong>
+                    </div>
+                {% else %}
+                    <div class="alert alert-secondary">
+                        Election has not started yet.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Candidates -->
+        <h4>Candidates</h4>
+        {% for candidate in candidates %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h5>
+                            <a href="{% url 'user_profile' candidate.user.username %}">
+                                {{ candidate.user.username }}
+                            </a>
+                        </h5>
+                        
+                        {% if candidate.platform %}
+                        <p><strong>Platform:</strong></p>
+                        <p>{{ candidate.platform|linebreaks }}</p>
+                        {% endif %}
+                        
+                        <small class="text-muted">Nominated: {{ candidate.nominated_at|date:"M d, Y" }}</small>
+                    </div>
+                    
+                    <div class="text-end ms-3">
+                        {% if election.is_completed %}
+                            <div class="badge bg-primary">
+                                {{ candidate.vote_count }} vote{{ candidate.vote_count|pluralize }}
+                            </div>
+                        {% endif %}
+                        
+                        {% if can_vote and election.is_open %}
+                            <a href="{% url 'parties:vote' election.pk candidate.pk %}" class="btn btn-primary mt-2">
+                                Vote for {{ candidate.user.username }}
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="alert alert-info">
+            No candidates yet.
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">Actions</h6>
+            </div>
+            <div class="card-body">
+                {% if user.is_authenticated %}
+                    {% if can_vote and election.is_open %}
+                        <a href="{% url 'parties:nominate' election.pk %}" class="btn btn-primary w-100 mb-2">
+                            Nominate Yourself
+                        </a>
+                        <p class="small text-muted">Voting is open until {{ election.closes_at|date:"M d, g:i A" }}</p>
+                    {% elif not can_vote and election.is_open %}
+                        <div class="alert alert-info small">
+                            {% if not user.is_authenticated %}
+                                Login to vote
+                            {% else %}
+                                You have already voted or are not a party member.
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endif %}
+                
+                <a href="{% url 'parties:detail' election.party.pk %}" class="btn btn-secondary w-100">
+                    Back to Party
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Election Info</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Party:</strong> {{ election.party.name }}</p>
+                <p><strong>Candidates:</strong> {{ candidates.count }}</p>
+                {% if election.is_completed %}
+                    <p><strong>Total Votes:</strong> {{ election.total_votes }}</p>
+                {% endif %}
+                <p class="mb-0"><strong>Status:</strong>
+                    {% if election.is_completed %}
+                        <span class="badge bg-success">Completed</span>
+                    {% elif election.is_open %}
+                        <span class="badge bg-warning">Open</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Pending</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

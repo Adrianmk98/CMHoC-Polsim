@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}Remove Position - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'cabinet_list' %}">Cabinet</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'manage_cabinet' %}">Manage Cabinet</a></li>
+                <li class="breadcrumb-item active">Remove Position</li>
+            </ol>
+        </nav>
+
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h3>⚠️ Remove Cabinet Position</h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <strong>⚠️ Warning:</strong> This will remove the following position from the cabinet:
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5>{{ position.title }}</h5>
+                        <p class="mb-1">
+                            <strong>Member:</strong> 
+                            <a href="{% url 'user_profile' position.user_profile.user.username %}">
+                                {{ position.user_profile.user.username }}
+                            </a>
+                        </p>
+                        {% if position.user_profile.party %}
+                            <p class="mb-1">
+                                <strong>Party:</strong>
+                                <span class="party-badge" style="background-color: {{ position.user_profile.party.color }};">
+                                    {{ position.user_profile.party.get_name_display }}
+                                </span>
+                            </p>
+                        {% endif %}
+                        <p class="mb-1"><strong>Portfolio:</strong> {{ position.portfolio }}</p>
+                        <p class="mb-1"><strong>Appointed:</strong> {{ position.start_date|date:"F d, Y" }}</p>
+                        <p class="mb-0"><strong>Duration:</strong> {{ position.duration }}</p>
+                    </div>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="end_date" class="form-label">End Date</label>
+                        <input type="date" 
+                               name="end_date" 
+                               id="end_date" 
+                               class="form-control" 
+                               value="{{ today|date:'Y-m-d' }}">
+                        <small class="form-text text-muted">The date this position ends (defaults to today)</small>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>Note:</strong> Removing this position will:
+                        <ul class="mb-0">
+                            <li>Set an end date for this cabinet position</li>
+                            <li>Preserve the historical record</li>
+                            <li>Remove them from the current cabinet display</li>
+                            <li>Not delete the position from the database</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger btn-lg flex-grow-1">
+                            ✓ Confirm Removal
+                        </button>
+                        <a href="{% url 'manage_cabinet' %}" class="btn btn-secondary btn-lg">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6>💡 Cabinet Shuffle Tips</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>To perform a cabinet shuffle:</strong></p>
+                <ol class="mb-0">
+                    <li>Remove positions for members leaving cabinet</li>
+                    <li>Edit positions for members changing portfolios</li>
+                    <li>Add new positions for incoming members</li>
+                    <li>Adjust order numbers if needed</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.party-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.85em;
+}
+</style>
+{% endblock %}

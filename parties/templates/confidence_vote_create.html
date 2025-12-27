@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Initiate No Confidence Vote - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4>🚨 Initiate Vote of No Confidence</h4>
+                <p class="mb-0">{{ party.name }}</p>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <strong>Warning:</strong> This is a serious action. A vote of no confidence can remove the current party leader if it passes.
+                </div>
+                
+                <p><strong>Current Leader:</strong> {{ party.leader.username }}</p>
+                <p><strong>Threshold:</strong> 50% of voting members must vote "No Confidence" for this to pass</p>
+                <p><strong>Duration:</strong> 3 days</p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Reason for No Confidence Vote *</label>
+                        {{ form.reason }}
+                        <small class="form-text text-muted">
+                            Clearly explain why you believe the leader should be removed. This will be visible to all party members.
+                        </small>
+                        {% if form.reason.errors %}
+                            <div class="text-danger">{{ form.reason.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="alert alert-info">
+                        <h6>What Happens Next</h6>
+                        <ul class="mb-0">
+                            <li>All party members will be able to vote for 3 days</li>
+                            <li>If ≥50% vote "No Confidence", the leader is removed</li>
+                            <li>If passed, a new leadership election is automatically triggered</li>
+                            <li>If failed, the leader remains in position</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger btn-lg flex-grow-1">
+                            Initiate No Confidence Vote
+                        </button>
+                        <a href="{% url 'parties:detail' party.pk %}" class="btn btn-secondary btn-lg">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
