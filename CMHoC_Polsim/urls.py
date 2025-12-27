@@ -11,6 +11,4 @@ urlpatterns = [
     path('elections/', include('elections.urls')),
     path('press/', include('press.urls')),
     path('parties/', include('parties.urls')),
-    path('accounts/login/', auth_views.LoginView.as_view(template_name='forum/login.html'), name='login'),
-    path('accounts/logout/', auth_views.LogoutView.as_view(next_page='forum_index'), name='logout'),
 ]

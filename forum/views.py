@@ -12,6 +12,10 @@ from django.contrib.auth.models import User
 from .models import ForumCategory, Thread, Post, Cabinet
 from voting.models import Bill, Vote
 from django.db.models import Count
+from django.contrib.auth import login, authenticate, logout as auth_logout
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.shortcuts import render, redirect
+from django.contrib import messages
 
 def index(request):
     """
@@ -609,3 +613,62 @@ def edit_cabinet_position(request, position_id):
         'cabinet': current_cabinet,
     }
     return render(request, 'edit_cabinet_position.html', context)
+
+def register(request):
+    """User registration"""
+    if request.user.is_authenticated:
+        return redirect('index')
+    
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            
+            # Create user profile
+            UserProfile.objects.get_or_create(user=user)
+            
+            # Log the user in
+            login(request, user)
+            messages.success(request, f'Welcome to CMHoC, {user.username}!')
+            return redirect('index')
+    else:
+        form = UserCreationForm()
+    
+    context = {
+        'form': form,
+    }
+    return render(request, 'register.html', context)
+
+
+def login_view(request):
+    """User login"""
+    if request.user.is_authenticated:
+        return redirect('index')
+    
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+                messages.success(request, f'Welcome back, {username}!')
+                
+                # Redirect to 'next' parameter if present
+                next_url = request.GET.get('next', 'index')
+                return redirect(next_url)
+    else:
+        form = AuthenticationForm()
+    
+    context = {
+        'form': form,
+    }
+    return render(request, 'login.html', context)
+
+
+def logout_view(request):
+    """User logout"""
+    auth_logout(request)
+    messages.success(request, 'You have been logged out.')
+    return redirect('index')
