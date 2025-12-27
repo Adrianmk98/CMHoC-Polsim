@@ -141,3 +141,27 @@ STATICFILES_DIRS = [
 ]
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Authentication settings
+LOGIN_REDIRECT_URL = 'index'  # Where to redirect after login
+LOGOUT_REDIRECT_URL = 'index'  # Where to redirect after logout
+LOGIN_URL = 'login'  # Where to redirect when login required
+
+# Optional: Password validation (already might be in your settings)
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,
+        }
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
