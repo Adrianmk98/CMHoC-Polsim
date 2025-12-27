@@ -43,7 +43,7 @@
                                     {{ category.latest_thread.title|truncatewords:12 }}
                                 </a>
                                 <br>
-                                by <a href="{% url 'user_profile' category.latest_thread.author.username %}">
+                                by <a href="{% url 'user_profile' category.latest_thread.author.id %}">
                                     {{ category.latest_thread.author.username }}
                                 </a>
                                 • {{ category.latest_thread.created_at|timesince }} ago

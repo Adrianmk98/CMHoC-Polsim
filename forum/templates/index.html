@@ -96,7 +96,7 @@
                         <div class="d-flex align-items-center text-muted small">
                             <span class="me-3">
                                 <strong>By:</strong> 
-                                <a href="{% url 'press:by_author' press.author.username %}">{{ press.author.username }}</a>
+                                <a href="{% url 'press:by_author' press.author.id %}">{{ press.author.username }}</a>
                             </span>
                             {% if press.party %}
                                 <span class="me-3">

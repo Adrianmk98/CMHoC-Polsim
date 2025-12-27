@@ -22,7 +22,7 @@
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
                             <p class="mb-1">
-                                <strong>By:</strong> <a href="{% url 'press:by_author' press_release.author.username %}">{{ press_release.author.username }}</a>
+                                <strong>By:</strong> <a href="{% url 'press:by_author' press_release.author.id %}">{{ press_release.author.username }}</a>
                                 {% if press_release.party %}
                                     | <a href="{% url 'press:by_party' press_release.party.id %}">
                                         <span class="badge" style="background-color: {{ press_release.party.color }};">

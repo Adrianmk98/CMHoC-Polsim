@@ -73,7 +73,7 @@
                     </div>
                     <p class="mb-1 text-muted">{{ bill.summary|truncatewords:30 }}</p>
                     <small class="text-muted">
-                        Sponsored by <strong>{{ bill.sponsor.username }}</strong> • 
+                        Sponsored by <strong>{{ bill.sponsor.id }}</strong> • 
                         {{ bill.get_chamber_display }} •
                         {% if bill.current_vote %}
                             <span class="text-danger">🗳️ Vote Open</span>
