@@ -29,7 +29,7 @@
                     <h4>🏆 Winner</h4>
                     <p class="mb-0">
                         <strong>
-                            <a href="{% url 'user_profile' riding_result.winner.user.username %}">
+                            <a href="{% url 'user_profile' riding_result.winner.user.id %}">
                                 {{ riding_result.winner.user.username }}
                             </a>
                         </strong>
@@ -94,7 +94,7 @@
                         {% for candidate in candidates %}
                         <tr {% if candidate.is_winner %}class="table-success"{% endif %}>
                             <td>
-                                <a href="{% url 'user_profile' candidate.candidate.user.username %}">
+                                <a href="{% url 'user_profile' candidate.candidate.user.id %}">
                                     {{ candidate.candidate.user.username }}
                                 </a>
                                 {% if candidate.is_incumbent %}

@@ -53,8 +53,8 @@
                                 {% if result.winner %}
                                 <p class="mb-1">
                                     <strong>Winner:</strong>
-                                    <a href="{% url 'user_profile' result.winner.user.username %}">
-                                        {{ result.winner.user.username }}
+                                    <a href="{% url 'user_profile' result.winner.user.id %}">
+                                        {{ result.winner.user.id }}
                                     </a>
                                     {% if result.winning_party %}
                                         -

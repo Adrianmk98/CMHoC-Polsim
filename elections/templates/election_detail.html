@@ -122,7 +122,7 @@
                         <td>
                             {% if result.winner %}
                                 <a href="{% url 'user_profile' result.winner.user.id %}">
-                                    {{ result.winner.user.username }}
+                                    {{ result.winner.user.id }}
                                 </a>
                                 {% if result.is_acclaimed %}
                                     <span class="badge bg-info">Acclaimed</span>
