@@ -37,6 +37,14 @@ services:
 
   # nginx removed - using Cloudflare tunnel instead
 
+  watchtower:
+    image: containrrr/watchtower
+    container_name: cmhoc_watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300 --cleanup
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   static_volume:
@@ -45,11 +53,3 @@ volumes:
 networks:
   cmhoc_network:
     driver: bridge
-
-watchtower:
-    image: containrrr/watchtower
-    container_name: cmhoc_watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 300 --cleanup
-    restart: unless-stopped
