@@ -11,7 +11,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
-
+from decouple import config
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,8 +26,13 @@ SECRET_KEY = 'django-insecure-pzdb%w=d-34)+(7s_#z=dhiz+li0hibm8ey6-&nm1tx6h+i7hd
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.trycloudflare.com',
+    'http://localhost:8000',
+    'http://10.0.0.222:8000',
+]
 
 # Application definition
 
@@ -83,11 +89,11 @@ WSGI_APPLICATION = 'CMHoC_Polsim.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'cmhoc_polsim_db',
-        'USER': 'polsim_user',
-        'PASSWORD': 'YourAppPassword123', 
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': config('DB_NAME', default='cmhoc_db'),
+        'USER': config('DB_USER', default='cmhoc_user'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST', default='db'),
+        'PORT': config('DB_PORT', default='5432'),
     }
 }
 
