@@ -65,7 +65,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <strong>{{ role.get_role_display }}</strong><br>
-                            <a href="{% url 'user_profile' role.user.username %}">{{ role.user.username }}</a>
+                            <a href="{% url 'user_profile' role.user.id %}">{{ role.user.username }}</a>
                         </div>
                         <small class="text-muted">Since {{ role.appointed_at|date:"M d, Y" }}</small>
                     </div>
@@ -87,7 +87,7 @@
                 <div class="row">
                     {% for membership in members %}
                     <div class="col-md-6 mb-2">
-                        <a href="{% url 'user_profile' membership.user.username %}">
+                        <a href="{% url 'user_profile' membership.user.id %}">
                             {{ membership.user.username }}
                         </a>
                         {% if membership.is_founding_member %}

@@ -1,15 +1,16 @@
+# docker-compose.yml
 version: '3.8'
 
 services:
   db:
-    image: postgres:15
-    container_name: cmhoc_postgres
+    image: postgres:15-alpine
+    container_name: cmhoc_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=cmhoc_db
-      - POSTGRES_USER=cmhoc_user
-      - POSTGRES_PASSWORD=YOUR_SECURE_PASSWORD_HERE
+      POSTGRES_DB: cmhoc_db
+      POSTGRES_USER: cmhoc_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     restart: unless-stopped
     networks:
       - cmhoc_network
@@ -17,24 +18,53 @@ services:
   web:
     build: .
     container_name: cmhoc_web
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: gunicorn CMHoC_Polsim.wsgi:application --bind 0.0.0.0:8000 --workers 4
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
+      - media_volume:/app/media
     ports:
       - "8000:8000"
     environment:
-      - DEBUG=True
-      - DATABASE_URL=postgres://cmhoc_user:YOUR_SECURE_PASSWORD_HERE@db:5432/cmhoc_db
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql://cmhoc_user:${DB_PASSWORD}@db:5432/cmhoc_db
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
     depends_on:
       - db
     restart: unless-stopped
     networks:
       - cmhoc_network
 
+  nginx:
+    image: nginx:alpine
+    container_name: cmhoc_nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - web
+    restart: unless-stopped
+    networks:
+      - cmhoc_network
+
+  # Auto-updater service - pulls from GitHub every 5 minutes
+  watchtower:
+    image: containrrr/watchtower
+    container_name: cmhoc_watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300 --cleanup cmhoc_web
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   static_volume:
+  media_volume:
 
 networks:
   cmhoc_network:
