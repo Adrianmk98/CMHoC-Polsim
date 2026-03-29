@@ -1,0 +1,209 @@
+{% extends 'mod_base.html' %}
+
+{% block title %}Scores — {{ target_user.username }}{% endblock %}
+
+{% block mod_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>{{ target_user.username }}</h2>
+    <div class="d-flex gap-2">
+        {% if active_session %}
+        <a href="{% url 'moderator:scores_dashboard' %}?session={{ active_session.id }}" class="btn btn-secondary btn-sm">← All Players</a>
+        {% else %}
+        <a href="{% url 'moderator:scores_dashboard' %}" class="btn btn-secondary btn-sm">← All Players</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Session selector -->
+<div class="d-flex align-items-center gap-2 mb-4 flex-wrap">
+    <strong>Session:</strong>
+    {% for s in sessions %}
+        <a href="?session={{ s.id }}"
+           class="btn btn-sm {% if active_session and active_session.id == s.id %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+            {{ s.name }}{% if s.is_active %} <span class="badge bg-success">Active</span>{% endif %}
+        </a>
+    {% endfor %}
+</div>
+
+{% if active_session %}
+
+<!-- Totals summary -->
+<div class="row g-2 mb-4">
+    {% if totals %}
+    <div class="col-6 col-md-2">
+        <div class="card text-center">
+            <div class="card-body py-2">
+                <div class="h4 mb-0">{{ totals.lt }}</div>
+                <small class="text-muted">LT</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card text-center">
+            <div class="card-body py-2">
+                <div class="h4 mb-0">{{ totals.position_bonus }}</div>
+                <small class="text-muted">Position</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card text-center">
+            <div class="card-body py-2">
+                <div class="h4 mb-0">{{ totals.debate }}</div>
+                <small class="text-muted">Debate</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card text-center">
+            <div class="card-body py-2">
+                <div class="h4 mb-0">{{ totals.press }}</div>
+                <small class="text-muted">Press</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card text-center">
+            <div class="card-body py-2">
+                <div class="h4 mb-0">{{ totals.legislation }}</div>
+                <small class="text-muted">Legislation</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card text-center">
+            <div class="card-body py-2">
+                <div class="h4 mb-0">{{ totals.campaign }}</div>
+                <small class="text-muted">Campaign</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center border-dark">
+            <div class="card-body py-2">
+                <div class="h3 mb-0 fw-bold">{{ totals.personal_modifier }}</div>
+                <small class="text-muted">Personal Modifier</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center {% if totals.is_active_persona %}border-success{% else %}border-secondary{% endif %}">
+            <div class="card-body py-2">
+                <div class="h3 mb-0 fw-bold {% if totals.is_active_persona %}text-success{% else %}text-secondary{% endif %}">{{ totals.active_modifier }}</div>
+                <small class="text-muted">Active Modifier</small>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row g-3">
+    <!-- LT / Active Persona -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header">LT Score &amp; Active Persona</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'moderator:update_lt' target_user.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="session_id" value="{{ active_session.id }}">
+                    <input type="hidden" name="next" value="{% url 'moderator:player_scores' target_user.id %}?session={{ active_session.id }}">
+                    <div class="mb-3">
+                        <label class="form-label">LT Score</label>
+                        <input type="number" step="0.01" name="lt_score" class="form-control"
+                               value="{{ lt_obj.lt_score|default:'0' }}">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="is_active_persona"
+                               value="1" id="is_active"
+                               {% if lt_obj and lt_obj.is_active_persona %}checked{% elif not lt_obj %}checked{% endif %}>
+                        <label class="form-check-label" for="is_active">Active Persona</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="2">{{ lt_obj.notes|default:'' }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">Save LT</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add score entry -->
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header">Add Score Entry</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'moderator:add_score_entry' target_user.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="session_id" value="{{ active_session.id }}">
+                    <input type="hidden" name="next" value="{% url 'moderator:player_scores' target_user.id %}?session={{ active_session.id }}">
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="form-label">Type</label>
+                            <select name="score_type" class="form-select">
+                                {% for value, label in score_types %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Score</label>
+                            <input type="number" step="0.01" name="score" class="form-control" placeholder="0.00">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Description</label>
+                            <input type="text" name="description" class="form-control" placeholder="e.g. Bill C-42 sponsorship">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-success btn-sm">Add Entry</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Score entry history -->
+<div class="card mt-3">
+    <div class="card-header">Score Entries</div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th class="text-end">Score</th>
+                    <th>Description</th>
+                    <th>Added by</th>
+                    <th>Date</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr>
+                    <td><span class="badge bg-secondary">{{ entry.get_score_type_display }}</span></td>
+                    <td class="text-end">{{ entry.score }}</td>
+                    <td>{{ entry.description }}</td>
+                    <td>{{ entry.created_by.username|default:"—" }}</td>
+                    <td><small class="text-muted">{{ entry.created_at|date:"M d, Y" }}</small></td>
+                    <td>
+                        <form method="post" action="{% url 'moderator:delete_score_entry' entry.id %}" style="display:inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-xs btn-sm btn-outline-danger"
+                                    onclick="return confirm('Delete this entry?')">✕</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-2">No entries yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% else %}
+<div class="alert alert-info">No active session selected.</div>
+{% endif %}
+{% endblock %}

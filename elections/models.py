@@ -116,7 +116,7 @@ class RidingElectionResult(models.Model):
     previous_party = models.ForeignKey(PoliticalParty, on_delete=models.SET_NULL, null=True, blank=True, related_name='previous_ridings')
     
     class Meta:
-        ordering = ['riding__province', 'riding__name']
+        ordering = ['riding__name']
         unique_together = ['election', 'riding']
     
     def __str__(self):

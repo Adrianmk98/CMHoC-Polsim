@@ -1,0 +1,40 @@
+{% extends 'mod_base.html' %}
+
+{% block title %}Create Parliament Session{% endblock %}
+
+{% block mod_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Create Parliament Session</h2>
+    <a href="{% url 'moderator:scores_dashboard' %}" class="btn btn-secondary btn-sm">← Back</a>
+</div>
+
+<div class="card" style="max-width: 560px;">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label fw-bold">Session Name</label>
+                <input type="text" name="name" class="form-control" placeholder="e.g. 44th Parliament – Session 2" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Start Date</label>
+                <input type="date" name="start_date" class="form-control" required>
+            </div>
+            <hr>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="carry_forward" value="1" id="carry_forward">
+                <label class="form-check-label" for="carry_forward">
+                    Carry forward Personal Modifier from previous session as LT score
+                </label>
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="carry_halved" value="1" id="carry_halved">
+                <label class="form-check-label" for="carry_halved">
+                    Halve the carried LT score (legacy decay)
+                </label>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Session</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

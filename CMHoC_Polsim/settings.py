@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'moderator',
     'press',
     'parties',
+    'scores',
     'django.contrib.humanize',
 ]
 

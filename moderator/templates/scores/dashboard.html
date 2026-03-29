@@ -1,0 +1,144 @@
+{% extends 'mod_base.html' %}
+
+{% block title %}Polling Calculator — Scores{% endblock %}
+
+{% block mod_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Polling Calculator</h2>
+    <a href="{% url 'moderator:session_create' %}" class="btn btn-primary btn-sm">+ New Session</a>
+</div>
+
+<!-- Session selector -->
+<div class="card mb-3">
+    <div class="card-body d-flex align-items-center gap-2 flex-wrap py-2">
+        <strong class="me-1">Session:</strong>
+        {% for s in sessions %}
+            <a href="?session={{ s.id }}"
+               class="btn btn-sm {% if active_session and active_session.id == s.id %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+                {{ s.name }}{% if s.is_active %} <span class="badge bg-success">Active</span>{% endif %}
+            </a>
+        {% empty %}
+            <span class="text-muted">No sessions yet. <a href="{% url 'moderator:session_create' %}">Create one.</a></span>
+        {% endfor %}
+    </div>
+</div>
+
+{% if active_session %}
+
+<!-- Quick-add score form -->
+<div class="card mb-3 border-success">
+    <div class="card-header bg-success text-white py-2">Quick Add Score</div>
+    <div class="card-body py-2">
+        <form method="post" id="quickAddForm" action="">
+            {% csrf_token %}
+            <input type="hidden" name="session_id" value="{{ active_session.id }}">
+            <input type="hidden" name="next" value="{{ request.path }}?session={{ active_session.id }}">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label mb-1 small">Player</label>
+                    <select name="_user_select" id="quickUser" class="form-select form-select-sm">
+                        <option value="">— select player —</option>
+                        {% for u in all_users %}
+                            <option value="{{ u.id }}">{{ u.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label mb-1 small">Type</label>
+                    <select name="score_type" class="form-select form-select-sm">
+                        {% for value, label in score_types %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label mb-1 small">Score</label>
+                    <input type="number" step="0.01" name="score" class="form-control form-control-sm" placeholder="0.00" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label mb-1 small">Description</label>
+                    <input type="text" name="description" class="form-control form-control-sm" placeholder="e.g. Bill C-42">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success btn-sm w-100" id="quickAddBtn" disabled>Add Score</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Leaderboard -->
+<div class="card">
+    <div class="card-header">{{ active_session.name }} — Scores</div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Player</th>
+                    <th class="text-center">Active</th>
+                    <th class="text-end">LT</th>
+                    <th class="text-end">Pos</th>
+                    <th class="text-end">Debate</th>
+                    <th class="text-end">Press</th>
+                    <th class="text-end">Leg.</th>
+                    <th class="text-end">Campaign</th>
+                    <th class="text-end fw-bold">Modifier</th>
+                    <th class="text-end fw-bold text-success">Active</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in players %}
+                <tr>
+                    <td class="text-muted">{{ forloop.counter }}</td>
+                    <td>{{ p.user.username }}</td>
+                    <td class="text-center">
+                        {% if p.is_active_persona %}<span class="badge bg-success">✓</span>
+                        {% else %}<span class="badge bg-secondary">✗</span>{% endif %}
+                    </td>
+                    <td class="text-end">{{ p.lt }}</td>
+                    <td class="text-end">{{ p.position_bonus }}</td>
+                    <td class="text-end">{{ p.debate }}</td>
+                    <td class="text-end">{{ p.press }}</td>
+                    <td class="text-end">{{ p.legislation }}</td>
+                    <td class="text-end">{{ p.campaign }}</td>
+                    <td class="text-end fw-bold">{{ p.personal_modifier }}</td>
+                    <td class="text-end fw-bold text-success">{{ p.active_modifier }}</td>
+                    <td>
+                        <a href="{% url 'moderator:player_scores' p.user.id %}?session={{ active_session.id }}"
+                           class="btn btn-sm btn-outline-primary py-0 px-1">Edit</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="12" class="text-center text-muted py-3">No users found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// Wire the quick-add form action to the selected user
+const userSelect = document.getElementById('quickUser');
+const addBtn = document.getElementById('quickAddBtn');
+const form = document.getElementById('quickAddForm');
+
+userSelect.addEventListener('change', function () {
+    const uid = this.value;
+    if (uid) {
+        form.action = '/moderator/scores/player/' + uid + '/add/';
+        addBtn.disabled = false;
+    } else {
+        form.action = '';
+        addBtn.disabled = true;
+    }
+});
+</script>
+
+{% else %}
+<div class="alert alert-info">No active session. <a href="{% url 'moderator:session_create' %}">Create one.</a></div>
+{% endif %}
+{% endblock %}

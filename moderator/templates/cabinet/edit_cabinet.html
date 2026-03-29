@@ -1,0 +1,82 @@
+{% extends 'mod_base.html' %}
+
+{% block title %}Edit Cabinet - Moderator{% endblock %}
+
+{% block mod_content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'moderator:dashboard' %}">Moderator</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'moderator:cabinet_dashboard' %}">Cabinet</a></li>
+                <li class="breadcrumb-item active">Edit: {{ cabinet.name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-warning text-dark">
+        <h4 class="mb-0">Edit Cabinet: {{ cabinet.name }}</h4>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Cabinet Name <span class="text-danger">*</span></label>
+                <input type="text" name="name" class="form-control" value="{{ cabinet.name }}" required>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Prime Minister</label>
+                    <select name="prime_minister" class="form-select">
+                        <option value="">-- None --</option>
+                        {% for profile in all_profiles %}
+                        <option value="{{ profile.id }}" {% if cabinet.prime_minister and cabinet.prime_minister == profile.user %}selected{% endif %}>
+                            {{ profile.user.username }}{% if profile.party %} ({{ profile.party.name }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Government Party</label>
+                    <select name="government_party" class="form-select">
+                        <option value="">-- None --</option>
+                        {% for party in parties %}
+                        <option value="{{ party.id }}" {% if cabinet.government_party and cabinet.government_party.id == party.id %}selected{% endif %}>
+                            {{ party.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Start Date <span class="text-danger">*</span></label>
+                    <input type="date" name="start_date" class="form-control" value="{{ cabinet.start_date|date:'Y-m-d' }}" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">End Date</label>
+                    <input type="date" name="end_date" class="form-control" value="{{ cabinet.end_date|date:'Y-m-d' }}">
+                    <small class="text-muted">Leave blank for active cabinet</small>
+                </div>
+                <div class="col-md-4 mb-3 d-flex align-items-end">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="is_current" value="1" id="is_current" {% if cabinet.is_current %}checked{% endif %}>
+                        <label class="form-check-label" for="is_current">Current cabinet</label>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea name="description" class="form-control" rows="3">{{ cabinet.description }}</textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-warning">Save Changes</button>
+                <a href="{% url 'moderator:cabinet_dashboard' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

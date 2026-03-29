@@ -26,7 +26,7 @@
                     <a href="{% url 'register' %}" class="btn btn-light btn-lg me-2">Join Now</a>
                     <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">Login</a>
                 {% else %}
-                    <a href="{% url 'forum_categories' %}" class="btn btn-light btn-lg me-2">Browse Forums</a>
+                    <a href="{% url 'forum_categories' %}" class="btn btn-light btn-lg me-2">Campaign Trail</a>
                     <a href="{% url 'press:create' %}" class="btn btn-outline-light btn-lg">Write Press Release</a>
                 {% endif %}
             </div>
@@ -49,7 +49,7 @@
         <div class="card text-center h-100">
             <div class="card-body">
                 <h2 class="text-success mb-0">{{ stats.total_users }}</h2>
-                <p class="mb-0 text-muted">Monthly Press</p>
+                <p class="mb-0 text-muted">Number of CMHoCers</p>
             </div>
         </div>
     </div>
@@ -232,7 +232,7 @@
         <!-- Recent Activity -->
         <div class="card mb-3">
             <div class="card-header">
-                <h6 class="mb-0">🔥 Recent Forum Activity</h6>
+                <h6 class="mb-0">🔥 Recent Campaign Activity</h6>
             </div>
             <div class="list-group list-group-flush">
                 {% for thread in recent_threads %}
@@ -249,7 +249,7 @@
                 {% endfor %}
             </div>
             <div class="card-footer">
-                <a href="{% url 'forum_categories' %}" class="btn btn-sm btn-outline-secondary w-100">Browse Forums</a>
+                <a href="{% url 'forum_categories' %}" class="btn btn-sm btn-outline-secondary w-100">Campaign Trail</a>
             </div>
         </div>
 
@@ -260,7 +260,7 @@
             </div>
             <div class="list-group list-group-flush">
                 <a href="{% url 'forum_categories' %}" class="list-group-item list-group-item-action">
-                    📋 Forum Categories
+                    📋 Campaign Trail
                 </a>
                 <a href="{% url 'parties:party_list' %}" class="list-group-item list-group-item-action">
                     🎭 Political Parties

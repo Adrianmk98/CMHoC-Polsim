@@ -25,7 +25,7 @@ def election_detail(request, election_id):
     # Get all riding results
     riding_results = election.riding_results.all().select_related(
         'riding', 'winner', 'winner__party', 'winning_party'
-    ).order_by('riding__province', 'riding__name')
+    ).prefetch_related('riding__provinces').order_by('riding__name')
     
     # Get seat totals by party
     seat_totals = election.calculate_seat_totals()
@@ -33,7 +33,7 @@ def election_detail(request, election_id):
     # Group results by province
     results_by_province = {}
     for result in riding_results:
-        province = result.riding.get_province_display()
+        province = str(result.riding.provinces.first()) if result.riding.provinces.exists() else 'Unknown'
         if province not in results_by_province:
             results_by_province[province] = []
         results_by_province[province].append(result)

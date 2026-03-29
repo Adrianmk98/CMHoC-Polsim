@@ -112,10 +112,10 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <!-- Forum Dropdown -->
+                    <!-- Campaign Trail Dropdown -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="forumDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Forum
+                            Campaign Trail
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="forumDropdown">
                             <li><a class="dropdown-item" href="{% url 'forum_index' %}">📋 All Categories</a></li>
@@ -154,6 +154,34 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'press:list' %}">📰 Press</a>
                     </li>
+
+                    <!-- Moderator Tools (staff/mods only) -->
+                    {% if user.is_authenticated %}
+                    {% if user.is_staff or user.profile.is_moderator %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle fw-bold text-danger" href="#" id="modDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            ⚙️ Mod
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="modDropdown">
+                            <li><a class="dropdown-item" href="{% url 'moderator:dashboard' %}">🏠 Mod Dashboard</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'moderator:election_dashboard' %}">📊 Elections</a></li>
+                            <li><a class="dropdown-item" href="{% url 'moderator:create_election' %}">➕ New Election</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'moderator:cabinet_dashboard' %}">🏛️ Cabinet</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'moderator:bill_dashboard' %}">📜 Bills & Votes</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'moderator:scores_dashboard' %}">📈 Scores</a></li>
+                            <li><a class="dropdown-item" href="{% url 'moderator:session_create' %}">➕ New Session</a></li>
+                            {% if user.is_staff %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/admin/">🔧 Admin Panel</a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    {% endif %}
+                    {% endif %}
                 </ul>
 
                 <!-- Search Bar -->
@@ -233,7 +261,7 @@
                 <div class="col-md-2 mb-4">
                     <h6>Navigate</h6>
                     <ul class="footer-links">
-                        <li><a href="{% url 'forum_index' %}">Forum Home</a></li>
+                        <li><a href="{% url 'forum_index' %}">Campaign Trail</a></li>
                         <li><a href="{% url 'press:list' %}">Press Releases</a></li>
                         <li><a href="{% url 'elections:election_list' %}">Elections</a></li>
                         <li><a href="{% url 'voting:bill_list' %}">Bills & Votes</a></li>
@@ -305,11 +333,9 @@
                 .catch(error => console.error('Error fetching notification count:', error));
         }
         
-        // Update on page load
         updateNotificationCount();
         
-        // Update every 60 seconds
-        setInterval(updateNotificationCount, 60000);
+        setInterval(updateNotificationCount, 300000);
     </script>
     {% endif %}
     

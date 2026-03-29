@@ -62,6 +62,18 @@ def can_manage_users(user):
         return False
 
 
+def can_manage_scores(user):
+    """Check if user can enter/edit player scores"""
+    if not user.is_authenticated:
+        return False
+    if user.is_staff:
+        return True
+    try:
+        return user.profile.is_moderator and user.profile.can_manage_scores
+    except:
+        return False
+
+
 def get_moderator_permissions(user):
     """Get dict of all moderator permissions for a user"""
     return {
@@ -70,4 +82,5 @@ def get_moderator_permissions(user):
         'can_manage_cabinet': can_manage_cabinet(user),
         'can_manage_bills': can_manage_bills(user),
         'can_manage_users': can_manage_users(user),
+        'can_manage_scores': can_manage_scores(user),
     }

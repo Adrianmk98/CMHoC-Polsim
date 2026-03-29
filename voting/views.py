@@ -3,8 +3,16 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.utils import timezone
-from .models import Bill, Vote, Ballot, PlayerHistory
+from .models import Bill, Vote, Ballot, PlayerHistory, BillDebatePost
 from .forms import BillForm, VoteForm, BallotForm
+
+
+def _active_score_session():
+    try:
+        from scores.models import ParliamentSession
+        return ParliamentSession.objects.filter(is_active=True).first()
+    except Exception:
+        return None
 
 
 def bill_list(request):
@@ -50,8 +58,32 @@ def bill_detail(request, bill_id):
         'current_vote': current_vote,
         'user_ballot': user_ballot,
         'all_votes': bill.votes.all()[:5],
+        'active_score_session': _active_score_session(),
+        'debate_posts': bill.debate_posts.all().select_related('author', 'author__profile__party'),
+        'active_stages': Bill.STATUS_CHOICES,
     }
     return render(request, 'bill_detail.html', context)
+
+
+@login_required
+def add_debate_post(request, bill_id):
+    """Post a debate comment on the current reading stage of a bill."""
+    bill = get_object_or_404(Bill, pk=bill_id)
+    if request.method == 'POST':
+        content = request.POST.get('content', '').strip()
+        if content and bill.status not in ('ROYAL_ASSENT', 'FAILED', 'DRAFT'):
+            BillDebatePost.objects.create(
+                bill=bill,
+                reading_stage=bill.status,
+                author=request.user,
+                content=content,
+            )
+            messages.success(request, 'Your debate post was submitted.')
+        elif not content:
+            messages.error(request, 'Post cannot be empty.')
+        else:
+            messages.error(request, 'Debate is not open at this stage.')
+    return redirect('voting:bill_detail', bill_id=bill.id)
 
 
 @login_required

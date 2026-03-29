@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Moderator quick-nav strip -->
+<div class="bg-dark text-white px-3 py-2 mb-3 rounded d-flex flex-wrap gap-2 align-items-center" style="font-size:0.85rem;">
+    <span class="text-warning fw-bold me-1">⚙️ MOD:</span>
+    <a href="{% url 'moderator:dashboard' %}" class="btn btn-sm btn-outline-light py-0">Dashboard</a>
+    <a href="{% url 'moderator:election_dashboard' %}" class="btn btn-sm btn-outline-light py-0">Elections</a>
+    <a href="{% url 'moderator:create_election' %}" class="btn btn-sm btn-outline-light py-0">+ Election</a>
+    <a href="{% url 'moderator:cabinet_dashboard' %}" class="btn btn-sm btn-outline-light py-0">Cabinet</a>
+    <a href="{% url 'moderator:bill_dashboard' %}" class="btn btn-sm btn-outline-light py-0">Bills</a>
+    <a href="{% url 'moderator:scores_dashboard' %}" class="btn btn-sm btn-outline-light py-0">Scores</a>
+    {% if user.is_staff %}
+    <a href="/admin/" class="btn btn-sm btn-outline-warning py-0">Admin</a>
+    {% endif %}
+</div>
+{% block mod_content %}{% endblock %}
+{% endblock %}
