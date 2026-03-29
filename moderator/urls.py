@@ -20,6 +20,11 @@ urlpatterns = [
     
     # Cabinet management
     path('cabinet/', views.cabinet_dashboard, name='cabinet_dashboard'),
+    path('cabinet/create/', views.mod_create_cabinet, name='mod_create_cabinet'),
+    path('cabinet/<int:cabinet_id>/edit/', views.mod_edit_cabinet, name='mod_edit_cabinet'),
+    path('cabinet/<int:cabinet_id>/add-position/', views.mod_add_position, name='mod_add_position'),
+    path('cabinet/position/<int:position_id>/edit/', views.mod_edit_position, name='mod_edit_position'),
+    path('cabinet/position/<int:position_id>/remove/', views.mod_remove_position, name='mod_remove_position'),
 
     # Bill management
     path('bills/', views.bill_dashboard, name='bill_dashboard'),

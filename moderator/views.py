@@ -323,15 +323,195 @@ def cabinet_dashboard(request):
     if not can_manage_cabinet(request.user):
         messages.error(request, "You don't have permission to manage cabinets.")
         return redirect('moderator:dashboard')
-    
-    cabinets = Cabinet.objects.all().order_by('-start_date')
+
+    cabinets = Cabinet.objects.all().order_by('-start_date').prefetch_related(
+        'positions__user_profile__user', 'positions__user_profile__party'
+    )
     current_cabinet = Cabinet.objects.filter(is_current=True).first()
-    
+
     context = {
         'cabinets': cabinets,
         'current_cabinet': current_cabinet,
     }
     return render(request, 'cabinet/dashboard.html', context)
+
+
+@login_required
+def mod_create_cabinet(request):
+    """Create a new cabinet."""
+    if not can_manage_cabinet(request.user):
+        messages.error(request, "You don't have permission to manage cabinets.")
+        return redirect('moderator:dashboard')
+
+    from django.contrib.auth.models import User
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        pm_id = request.POST.get('prime_minister')
+        party_id = request.POST.get('government_party')
+        start_date = request.POST.get('start_date')
+        is_current = request.POST.get('is_current') == '1'
+        description = request.POST.get('description', '').strip()
+
+        if not name or not start_date:
+            messages.error(request, "Name and start date are required.")
+        else:
+            pm = UserProfile.objects.filter(pk=pm_id).first() if pm_id else None
+            party = PoliticalParty.objects.filter(pk=party_id).first() if party_id else None
+            Cabinet.objects.create(
+                name=name,
+                prime_minister=pm.user if pm else None,
+                government_party=party,
+                start_date=start_date,
+                is_current=is_current,
+                description=description,
+            )
+            messages.success(request, f"Cabinet '{name}' created.")
+            return redirect('moderator:cabinet_dashboard')
+
+    context = {
+        'all_profiles': UserProfile.objects.all().select_related('user', 'party').order_by('user__username'),
+        'parties': PoliticalParty.objects.all(),
+    }
+    return render(request, 'cabinet/create_cabinet.html', context)
+
+
+@login_required
+def mod_edit_cabinet(request, cabinet_id):
+    """Edit cabinet metadata."""
+    if not can_manage_cabinet(request.user):
+        messages.error(request, "You don't have permission to manage cabinets.")
+        return redirect('moderator:dashboard')
+
+    cabinet = get_object_or_404(Cabinet, pk=cabinet_id)
+
+    if request.method == 'POST':
+        cabinet.name = request.POST.get('name', cabinet.name).strip()
+        pm_id = request.POST.get('prime_minister')
+        party_id = request.POST.get('government_party')
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date') or None
+        cabinet.is_current = request.POST.get('is_current') == '1'
+        cabinet.description = request.POST.get('description', '').strip()
+
+        if start_date:
+            cabinet.start_date = start_date
+        cabinet.end_date = end_date
+
+        pm = UserProfile.objects.filter(pk=pm_id).first() if pm_id else None
+        cabinet.prime_minister = pm.user if pm else None
+        cabinet.government_party = PoliticalParty.objects.filter(pk=party_id).first() if party_id else None
+
+        cabinet.save()
+        messages.success(request, f"Cabinet '{cabinet.name}' updated.")
+        return redirect('moderator:cabinet_dashboard')
+
+    context = {
+        'cabinet': cabinet,
+        'all_profiles': UserProfile.objects.all().select_related('user', 'party').order_by('user__username'),
+        'parties': PoliticalParty.objects.all(),
+    }
+    return render(request, 'cabinet/edit_cabinet.html', context)
+
+
+@login_required
+def mod_add_position(request, cabinet_id):
+    """Add a position to any cabinet."""
+    if not can_manage_cabinet(request.user):
+        messages.error(request, "You don't have permission to manage cabinets.")
+        return redirect('moderator:dashboard')
+
+    cabinet = get_object_or_404(Cabinet, pk=cabinet_id)
+
+    if request.method == 'POST':
+        profile_id = request.POST.get('user_profile')
+        position_type = request.POST.get('position_type')
+        portfolio = request.POST.get('portfolio', '').strip()
+        title = request.POST.get('title', '').strip()
+        order = int(request.POST.get('order', 0) or 0)
+        start_date = request.POST.get('start_date')
+        notes = request.POST.get('notes', '').strip()
+
+        if not profile_id or not position_type or not portfolio or not title or not start_date:
+            messages.error(request, "All fields except notes are required.")
+        else:
+            profile = get_object_or_404(UserProfile, pk=profile_id)
+            CabinetPosition.objects.create(
+                cabinet=cabinet,
+                user_profile=profile,
+                position_type=position_type,
+                portfolio=portfolio,
+                title=title,
+                order=order,
+                start_date=start_date,
+                notes=notes,
+            )
+            messages.success(request, f"Added {title} to {cabinet.name}.")
+            return redirect('moderator:cabinet_dashboard')
+
+    context = {
+        'cabinet': cabinet,
+        'all_profiles': UserProfile.objects.all().select_related('user', 'party').order_by('user__username'),
+        'position_types': CabinetPosition.POSITION_TYPES,
+    }
+    return render(request, 'cabinet/add_position.html', context)
+
+
+@login_required
+def mod_edit_position(request, position_id):
+    """Edit a cabinet position."""
+    if not can_manage_cabinet(request.user):
+        messages.error(request, "You don't have permission to manage cabinets.")
+        return redirect('moderator:dashboard')
+
+    position = get_object_or_404(CabinetPosition, pk=position_id)
+
+    if request.method == 'POST':
+        profile_id = request.POST.get('user_profile')
+        position.position_type = request.POST.get('position_type', position.position_type)
+        position.portfolio = request.POST.get('portfolio', position.portfolio).strip()
+        position.title = request.POST.get('title', position.title).strip()
+        position.order = int(request.POST.get('order', position.order) or 0)
+        position.notes = request.POST.get('notes', '').strip()
+
+        if profile_id:
+            position.user_profile = get_object_or_404(UserProfile, pk=profile_id)
+
+        position.save()
+        messages.success(request, f"Updated {position.title}.")
+        return redirect('moderator:cabinet_dashboard')
+
+    context = {
+        'position': position,
+        'cabinet': position.cabinet,
+        'all_profiles': UserProfile.objects.all().select_related('user', 'party').order_by('user__username'),
+        'position_types': CabinetPosition.POSITION_TYPES,
+    }
+    return render(request, 'cabinet/edit_position.html', context)
+
+
+@login_required
+def mod_remove_position(request, position_id):
+    """End a cabinet position (set end_date)."""
+    if not can_manage_cabinet(request.user):
+        messages.error(request, "You don't have permission to manage cabinets.")
+        return redirect('moderator:dashboard')
+
+    position = get_object_or_404(CabinetPosition, pk=position_id)
+
+    if request.method == 'POST':
+        from django.utils import timezone
+        end_date = request.POST.get('end_date') or timezone.now().date()
+        position.end_date = end_date
+        position.save()
+        messages.success(request, f"Ended {position.title}.")
+        return redirect('moderator:cabinet_dashboard')
+
+    context = {
+        'position': position,
+        'cabinet': position.cabinet,
+    }
+    return render(request, 'cabinet/remove_position.html', context)
 
 
 # ============================================================================
@@ -378,14 +558,12 @@ def scores_dashboard(request):
     if not active_session:
         active_session = ParliamentSession.objects.filter(is_active=True).first()
 
+    from scores.models import ScoreEntry
+    all_users = User.objects.filter(is_active=True).order_by('username')
     players = []
     if active_session:
-        users = User.objects.filter(is_active=True).order_by('username')
-        for user in users:
+        for user in all_users:
             totals = get_player_totals(active_session, user)
-            # Skip users with no scores at all
-            if totals['personal_modifier'] == 0 and totals['lt'] == 0:
-                continue
             players.append({'user': user, **totals})
         players.sort(key=lambda p: p['active_modifier'], reverse=True)
 
@@ -393,6 +571,8 @@ def scores_dashboard(request):
         'sessions': sessions,
         'active_session': active_session,
         'players': players,
+        'all_users': all_users,
+        'score_types': ScoreEntry.SCORE_TYPES,
     }
     return render(request, 'scores/dashboard.html', context)
 

@@ -1,8 +1,8 @@
-{% extends 'base.html' %}
+{% extends 'mod_base.html' %}
 
 {% block title %}Cabinet Management - Moderator{% endblock %}
 
-{% block content %}
+{% block mod_content %}
 <div class="row">
     <div class="col-12">
         <nav aria-label="breadcrumb">
@@ -14,52 +14,85 @@
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header bg-success text-white">
-        <h3>🏛️ Cabinet Management</h3>
-    </div>
-    <div class="card-body">
-        <h5>Current Cabinet</h5>
-        {% if current_cabinet %}
-        <p><strong>Name:</strong> {{ current_cabinet.name }}</p>
-        <p><strong>Prime Minister:</strong> {{ current_cabinet.prime_minister.user.username }}</p>
-        <p><strong>Started:</strong> {{ current_cabinet.start_date|date:"F d, Y" }}</p>
-        <a href="{% url 'manage_cabinet' %}" class="btn btn-success">
-            Manage Current Cabinet
-        </a>
-        {% else %}
-        <p class="text-muted">No current cabinet set.</p>
-        {% endif %}
-
-        <hr>
-
-        <h5>All Cabinets</h5>
-        <div class="list-group">
-            {% for cabinet in cabinets %}
-            <a href="{% url 'cabinet_detail' cabinet.id %}" class="list-group-item list-group-item-action">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <strong>{{ cabinet.name }}</strong>
-                        {% if cabinet.is_current %}
-                            <span class="badge bg-success">Current</span>
-                        {% endif %}
-                    </div>
-                    <small class="text-muted">{{ cabinet.start_date|date:"Y" }}</small>
-                </div>
-            </a>
-            {% empty %}
-            <div class="list-group-item">
-                <p class="text-muted mb-0">No cabinets created yet.</p>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">🏛️ Cabinet Management</h3>
+    <a href="{% url 'moderator:mod_create_cabinet' %}" class="btn btn-success">+ Create Cabinet</a>
 </div>
 
+{% if cabinets %}
+{% for cabinet in cabinets %}
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center {% if cabinet.is_current %}bg-success text-white{% endif %}">
+        <div>
+            <strong>{{ cabinet.name }}</strong>
+            {% if cabinet.is_current %}<span class="badge bg-light text-dark ms-2">Current</span>{% endif %}
+            {% if cabinet.prime_minister %}
+                <span class="ms-2 {% if cabinet.is_current %}text-white-50{% else %}text-muted{% endif %}">
+                    PM: {{ cabinet.prime_minister.username }}
+                </span>
+            {% endif %}
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'moderator:mod_add_position' cabinet.id %}" class="btn btn-sm {% if cabinet.is_current %}btn-light{% else %}btn-outline-secondary{% endif %}">+ Position</a>
+            <a href="{% url 'moderator:mod_edit_cabinet' cabinet.id %}" class="btn btn-sm {% if cabinet.is_current %}btn-warning{% else %}btn-outline-secondary{% endif %}">Edit</a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% with positions=cabinet.positions.all %}
+        {% if positions %}
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Position</th>
+                    <th>Member</th>
+                    <th>Portfolio</th>
+                    <th>Start</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pos in positions %}
+                <tr {% if pos.end_date %}class="text-muted"{% endif %}>
+                    <td><small>{{ pos.get_position_type_display }}</small></td>
+                    <td><small>{{ pos.user_profile.user.username }}</small></td>
+                    <td><small>{{ pos.portfolio }}</small></td>
+                    <td><small>{{ pos.start_date|date:"M d, Y" }}</small></td>
+                    <td>
+                        {% if pos.end_date %}
+                            <span class="badge bg-secondary">Ended {{ pos.end_date|date:"M d, Y" }}</span>
+                        {% else %}
+                            <span class="badge bg-success">Active</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{% url 'moderator:mod_edit_position' pos.id %}" class="btn btn-xs btn-outline-primary btn-sm py-0 px-1">Edit</a>
+                        {% if not pos.end_date %}
+                        <a href="{% url 'moderator:mod_remove_position' pos.id %}" class="btn btn-xs btn-outline-danger btn-sm py-0 px-1">End</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted px-3 py-2 mb-0">No positions yet. <a href="{% url 'moderator:mod_add_position' cabinet.id %}">Add one.</a></p>
+        {% endif %}
+        {% endwith %}
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card">
+    <div class="card-body text-center text-muted py-5">
+        <p>No cabinets yet.</p>
+        <a href="{% url 'moderator:mod_create_cabinet' %}" class="btn btn-success">Create First Cabinet</a>
+    </div>
+</div>
+{% endif %}
+
 <div class="mt-3">
-    <a href="{% url 'moderator:dashboard' %}" class="btn btn-secondary">
-        Back to Dashboard
-    </a>
+    <a href="{% url 'moderator:dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
 </div>
 
 {% endblock %}

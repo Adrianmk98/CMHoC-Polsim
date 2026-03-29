@@ -180,5 +180,20 @@ class PlayerHistory(models.Model):
         total_votes_available = Vote.objects.filter(is_active=False).count()
         if total_votes_available > 0:
             self.participation_rate = (self.total_votes / total_votes_available) * 100
-        
+
         self.save()
+
+
+class BillDebatePost(models.Model):
+    """A debate post attached to a specific reading stage of a bill."""
+    bill = models.ForeignKey(Bill, on_delete=models.CASCADE, related_name='debate_posts')
+    reading_stage = models.CharField(max_length=20, choices=Bill.STATUS_CHOICES)
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='debate_posts')
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.author.username} on {self.bill.bill_number} ({self.reading_stage})"

@@ -1,0 +1,72 @@
+{% extends 'mod_base.html' %}
+
+{% block title %}Edit Position - Moderator{% endblock %}
+
+{% block mod_content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'moderator:dashboard' %}">Moderator</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'moderator:cabinet_dashboard' %}">Cabinet</a></li>
+                <li class="breadcrumb-item active">Edit Position</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-warning text-dark">
+        <h4 class="mb-0">Edit Position: {{ position.title }}</h4>
+        <small>Cabinet: {{ cabinet.name }}</small>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Member</label>
+                    <select name="user_profile" class="form-select">
+                        {% for profile in all_profiles %}
+                        <option value="{{ profile.id }}" {% if position.user_profile.id == profile.id %}selected{% endif %}>
+                            {{ profile.user.username }}{% if profile.party %} ({{ profile.party.name }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Position Type</label>
+                    <select name="position_type" class="form-select">
+                        {% for value, label in position_types %}
+                        <option value="{{ value }}" {% if position.position_type == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Portfolio</label>
+                    <input type="text" name="portfolio" class="form-control" value="{{ position.portfolio }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Full Title</label>
+                    <input type="text" name="title" class="form-control" value="{{ position.title }}">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Sort Order</label>
+                <input type="number" name="order" class="form-control" value="{{ position.order }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <textarea name="notes" class="form-control" rows="2">{{ position.notes }}</textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-warning">Save Changes</button>
+                <a href="{% url 'moderator:cabinet_dashboard' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

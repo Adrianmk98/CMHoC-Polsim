@@ -7,7 +7,7 @@
     <div class="col-12">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'forum_index' %}">Forum</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'forum_index' %}">Campaign Trail</a></li>
                 <li class="breadcrumb-item"><a href="{% url 'category_detail' thread.category.id %}">{{ thread.category.name }}</a></li>
                 <li class="breadcrumb-item active">{{ thread.title }}</li>
             </ol>
@@ -74,6 +74,25 @@
                     <div class="{% if forloop.first and page_obj.number == 1 %}fs-5{% endif %}">
                         {{ post.content|linebreaks }}
                     </div>
+
+                    {% if request.user.is_staff and active_score_session %}
+                    <div class="mt-2 pt-2 border-top d-flex align-items-center gap-2 flex-wrap">
+                        <form method="post" action="{% url 'moderator:add_score_entry' post.author.id %}"
+                              class="d-flex align-items-center gap-1 flex-wrap">
+                            {% csrf_token %}
+                            <input type="hidden" name="session_id" value="{{ active_score_session.id }}">
+                            <input type="hidden" name="score_type" value="DEBATE">
+                            <input type="hidden" name="thread_id" value="{{ thread.id }}">
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            <input type="hidden" name="description"
+                                   value="{{ thread.title|truncatechars:60 }} — {{ post.author.username }}">
+                            <span class="badge bg-warning text-dark">⚙️ {{ post.author.username }}</span>
+                            <input type="number" step="0.01" name="score"
+                                   class="form-control form-control-sm" style="width:80px" placeholder="pts">
+                            <button type="submit" class="btn btn-sm btn-warning py-0">+ Debate</button>
+                        </form>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -151,53 +170,6 @@
 </div>
 {% endif %}
 
-{% if request.user.is_staff and active_score_session %}
-<div class="row mt-3">
-    <div class="col-12">
-        <div class="card border-warning">
-            <div class="card-header bg-warning text-dark">
-                Moderator: Score Thread Participant (Debate)
-            </div>
-            <div class="card-body">
-                <form method="post" action="{% url 'moderator:add_score_entry' thread.author.id %}" id="debateScoreForm">
-                    {% csrf_token %}
-                    <input type="hidden" name="session_id" value="{{ active_score_session.id }}">
-                    <input type="hidden" name="score_type" value="DEBATE">
-                    <input type="hidden" name="thread_id" value="{{ thread.id }}">
-                    <input type="hidden" name="next" value="{{ request.path }}">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-md-3">
-                            <label class="form-label">Player</label>
-                            <select class="form-select" id="scoreUserSelect">
-                                {% for post in posts %}
-                                <option value="{{ post.author.id }}">{{ post.author.username }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Score</label>
-                            <input type="number" step="0.01" name="score" class="form-control" placeholder="0.00" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Description</label>
-                            <input type="text" name="description" class="form-control"
-                                   value="{{ thread.title|truncatechars:60 }}">
-                        </div>
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-warning w-100">Add Debate Score</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-<script>
-document.getElementById('scoreUserSelect').addEventListener('change', function () {
-    document.getElementById('debateScoreForm').action =
-        '/moderator/scores/player/' + this.value + '/add/';
-});
-</script>
 {% endif %}
 
 {% endblock %}
