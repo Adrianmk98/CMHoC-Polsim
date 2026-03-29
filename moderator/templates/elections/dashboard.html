@@ -112,6 +112,10 @@
                     <a href="{% url 'moderator:complete_election' election.id %}" class="btn btn-sm btn-outline-success">
                         Complete
                     </a>
+                    {% else %}
+                    <a href="{% url 'moderator:add_results' election.id %}" class="btn btn-sm btn-outline-secondary">
+                        Edit Results
+                    </a>
                     {% endif %}
                 </div>
             </div>

@@ -6,6 +6,14 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from .models import PressRelease, PressImage, PressComment
 from .forms import PressReleaseForm, ImageUploadForm, PressCommentForm
+
+
+def _active_score_session():
+    try:
+        from scores.models import ParliamentSession
+        return ParliamentSession.objects.filter(is_active=True).first()
+    except Exception:
+        return None
 import base64
 from io import BytesIO
 from PIL import Image
@@ -95,6 +103,7 @@ def press_detail(request, slug):
         'comments': comments,
         'comment_form': comment_form,
         'related': related,
+        'active_score_session': _active_score_session(),
     }
     return render(request, 'detail.html', context)
 

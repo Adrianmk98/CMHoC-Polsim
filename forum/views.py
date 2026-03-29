@@ -6,6 +6,14 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 
 from .models import Cabinet, ForumCategory, PositionHistory, Thread, Post, UserProfile
+
+
+def _active_score_session():
+    try:
+        from scores.models import ParliamentSession
+        return ParliamentSession.objects.filter(is_active=True).first()
+    except Exception:
+        return None
 from .forms import ThreadForm, PostForm
 from django.shortcuts import render
 from django.contrib.auth.models import User
@@ -205,8 +213,10 @@ def thread_detail(request, thread_id):
     
     context = {
         'thread': thread,
+        'posts': posts,
         'page_obj': page_obj,
         'form': form,
+        'active_score_session': _active_score_session(),
     }
     return render(request, 'thread_detail.html', context)
 
@@ -310,21 +320,23 @@ def search(request):
 
 def riding_list(request):
     """Display all ridings grouped by province"""
-    from .models import Riding
+    from .models import Riding, Province
     
     province_filter = request.GET.get('province', '')
     
-    ridings = Riding.objects.filter(is_active=True)
+    ridings = Riding.objects.filter(is_active=True).prefetch_related('provinces')
     if province_filter:
-        ridings = ridings.filter(province=province_filter)
+        ridings = ridings.filter(provinces__code=province_filter)
     
     # Group by province
     provinces = {}
     for riding in ridings:
-        prov = riding.get_province_display()
-        if prov not in provinces:
-            provinces[prov] = []
-        provinces[prov].append(riding)
+        for province in riding.provinces.all():
+            prov = str(province)
+            if prov not in provinces:
+                provinces[prov] = []
+            if riding not in provinces[prov]:
+                provinces[prov].append(riding)
     
     # Sort provinces
     provinces = dict(sorted(provinces.items()))
@@ -332,7 +344,7 @@ def riding_list(request):
     context = {
         'provinces': provinces,
         'province_filter': province_filter,
-        'province_choices': Riding.PROVINCE_CHOICES,
+        'province_choices': Province.objects.all(),
         'total_ridings': ridings.count(),
     }
     return render(request, 'riding_list.html', context)

@@ -3,9 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Sum
-from .permissions import can_manage_elections, can_manage_cabinet, can_manage_bills, get_moderator_permissions
+from .permissions import can_manage_elections, can_manage_cabinet, can_manage_bills, can_manage_scores, get_moderator_permissions
 from elections.models import Election, RidingElectionResult, CandidateResult
-from forum.models import Riding, UserProfile, PoliticalParty, Cabinet, CabinetPosition
+from forum.models import Riding, UserProfile, PoliticalParty, Cabinet, CabinetPosition, PositionHistory
 from voting.models import Bill, Vote
 
 
@@ -124,7 +124,7 @@ def create_election(request):
         messages.success(request, f"Election '{name}' created! Now add results.")
         return redirect('moderator:add_results', election_id=election.id)
     
-    ridings = Riding.objects.all().order_by('province', 'name')
+    ridings = Riding.objects.all().order_by('name')
     
     context = {
         'ridings': ridings,
@@ -145,7 +145,7 @@ def add_results(request, election_id):
     if election.election_type == 'BY_ELECTION' and election.riding:
         ridings = [election.riding]
     else:
-        ridings = Riding.objects.all().order_by('province', 'name')
+        ridings = Riding.objects.all().order_by('name')
     
     # Get existing results
     existing_results = RidingElectionResult.objects.filter(
@@ -195,7 +195,26 @@ def bulk_add_results(request, election_id):
                         'is_acclaimed': result_data.get('is_acclaimed', False),
                     }
                 )
-                
+
+                if winner:
+                    # End any current MP position for this riding
+                    PositionHistory.objects.filter(
+                        position_type='MP',
+                        riding_obj=riding,
+                        end_date__isnull=True,
+                    ).exclude(user_profile=winner).update(end_date=election.election_date)
+                    # Create new MP position if not already current
+                    PositionHistory.objects.get_or_create(
+                        position_type='MP',
+                        riding_obj=riding,
+                        user_profile=winner,
+                        end_date=None,
+                        defaults={
+                            'position_title': f'Member of Parliament for {riding.name}',
+                            'start_date': election.election_date,
+                        }
+                    )
+
                 if created:
                     created_count += 1
                 else:
@@ -334,3 +353,226 @@ def bill_dashboard(request):
         'active_votes': active_votes,
     }
     return render(request, 'bills/dashboard.html', context)
+
+
+# ============================================================================
+# SCORE MANAGEMENT
+# ============================================================================
+
+@login_required
+def scores_dashboard(request):
+    """Polling calculator — moderator-only scores dashboard."""
+    if not can_manage_scores(request.user):
+        messages.error(request, "You don't have permission to manage scores.")
+        return redirect('moderator:dashboard')
+
+    from scores.models import ParliamentSession, get_player_totals
+    from django.contrib.auth.models import User
+
+    sessions = ParliamentSession.objects.all()
+    session_id = request.GET.get('session')
+
+    active_session = None
+    if session_id:
+        active_session = ParliamentSession.objects.filter(pk=session_id).first()
+    if not active_session:
+        active_session = ParliamentSession.objects.filter(is_active=True).first()
+
+    players = []
+    if active_session:
+        users = User.objects.filter(is_active=True).order_by('username')
+        for user in users:
+            totals = get_player_totals(active_session, user)
+            # Skip users with no scores at all
+            if totals['personal_modifier'] == 0 and totals['lt'] == 0:
+                continue
+            players.append({'user': user, **totals})
+        players.sort(key=lambda p: p['active_modifier'], reverse=True)
+
+    context = {
+        'sessions': sessions,
+        'active_session': active_session,
+        'players': players,
+    }
+    return render(request, 'scores/dashboard.html', context)
+
+
+@login_required
+def session_create(request):
+    """Create a new parliament session."""
+    if not can_manage_scores(request.user):
+        messages.error(request, "You don't have permission to manage scores.")
+        return redirect('moderator:dashboard')
+
+    from scores.models import ParliamentSession, PlayerLT, get_player_totals
+    from django.contrib.auth.models import User
+    from decimal import Decimal
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        start_date = request.POST.get('start_date')
+        carry_forward = request.POST.get('carry_forward') == '1'
+        carry_halved = request.POST.get('carry_halved') == '1'
+
+        if not name or not start_date:
+            messages.error(request, "Name and start date are required.")
+            return redirect('moderator:session_create')
+
+        session = ParliamentSession.objects.create(
+            name=name,
+            start_date=start_date,
+            is_active=True,
+        )
+
+        if carry_forward:
+            prev = ParliamentSession.objects.exclude(pk=session.pk).order_by('-start_date').first()
+            if prev:
+                for user in User.objects.filter(is_active=True):
+                    totals = get_player_totals(prev, user)
+                    pm = totals['personal_modifier']
+                    if pm > 0:
+                        lt = (pm / Decimal('2')).quantize(Decimal('0.01')) if carry_halved else pm
+                        PlayerLT.objects.get_or_create(
+                            session=session, user=user,
+                            defaults={'lt_score': lt, 'is_active_persona': totals['is_active_persona']},
+                        )
+
+        messages.success(request, f"Session '{name}' created.")
+        return redirect('moderator:scores_dashboard')
+
+    return render(request, 'scores/session_create.html', {})
+
+
+@login_required
+def player_scores(request, user_id):
+    """View/edit all score entries for a player in the active session."""
+    if not can_manage_scores(request.user):
+        messages.error(request, "You don't have permission to manage scores.")
+        return redirect('moderator:dashboard')
+
+    from scores.models import ParliamentSession, PlayerLT, ScoreEntry, get_player_totals, POSITION_BONUSES
+    from django.contrib.auth.models import User
+
+    target_user = get_object_or_404(User, pk=user_id)
+    sessions = ParliamentSession.objects.all()
+    session_id = request.GET.get('session')
+    active_session = (
+        ParliamentSession.objects.filter(pk=session_id).first()
+        if session_id else
+        ParliamentSession.objects.filter(is_active=True).first()
+    )
+
+    lt_obj = None
+    entries = []
+    totals = {}
+    if active_session:
+        lt_obj, _ = PlayerLT.objects.get_or_create(
+            session=active_session, user=target_user,
+            defaults={'lt_score': 0, 'is_active_persona': True},
+        )
+        entries = ScoreEntry.objects.filter(session=active_session, user=target_user).select_related('created_by')
+        totals = get_player_totals(active_session, target_user)
+
+    context = {
+        'target_user': target_user,
+        'sessions': sessions,
+        'active_session': active_session,
+        'lt_obj': lt_obj,
+        'entries': entries,
+        'totals': totals,
+        'score_types': ScoreEntry.SCORE_TYPES,
+    }
+    return render(request, 'scores/player_scores.html', context)
+
+
+@login_required
+def update_lt(request, user_id):
+    """Update a player's LT score and active persona flag."""
+    if not can_manage_scores(request.user):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    from scores.models import ParliamentSession, PlayerLT
+    from django.contrib.auth.models import User
+    from decimal import Decimal, InvalidOperation
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=400)
+
+    target_user = get_object_or_404(User, pk=user_id)
+    session_id = request.POST.get('session_id')
+    active_session = get_object_or_404(ParliamentSession, pk=session_id)
+
+    try:
+        lt_score = Decimal(request.POST.get('lt_score', '0'))
+    except InvalidOperation:
+        return JsonResponse({'error': 'Invalid score'}, status=400)
+
+    is_active = request.POST.get('is_active_persona') == '1'
+    notes = request.POST.get('notes', '')
+
+    lt_obj, _ = PlayerLT.objects.update_or_create(
+        session=active_session, user=target_user,
+        defaults={'lt_score': lt_score, 'is_active_persona': is_active, 'notes': notes},
+    )
+    messages.success(request, "LT score updated.")
+    return redirect(f"{request.build_absolute_uri('/')[:-1]}{request.POST.get('next', '/')}")
+
+
+@login_required
+def add_score_entry(request, user_id):
+    """Add a score entry for a player."""
+    if not can_manage_scores(request.user):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    from scores.models import ParliamentSession, ScoreEntry
+    from django.contrib.auth.models import User
+    from decimal import Decimal, InvalidOperation
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=400)
+
+    target_user = get_object_or_404(User, pk=user_id)
+    session_id = request.POST.get('session_id')
+    active_session = get_object_or_404(ParliamentSession, pk=session_id)
+
+    try:
+        score = Decimal(request.POST.get('score', '0'))
+    except InvalidOperation:
+        messages.error(request, "Invalid score value.")
+        return redirect(request.POST.get('next', '/'))
+
+    score_type = request.POST.get('score_type')
+    if score_type not in dict(ScoreEntry.SCORE_TYPES):
+        messages.error(request, "Invalid score type.")
+        return redirect(request.POST.get('next', '/'))
+
+    ScoreEntry.objects.create(
+        session=active_session,
+        user=target_user,
+        score_type=score_type,
+        score=score,
+        description=request.POST.get('description', ''),
+        bill_id=request.POST.get('bill_id') or None,
+        press_release_id=request.POST.get('press_release_id') or None,
+        thread_id=request.POST.get('thread_id') or None,
+        created_by=request.user,
+    )
+    messages.success(request, f"Score of {score} ({score_type}) added for {target_user.username}.")
+    return redirect(request.POST.get('next', '/'))
+
+
+@login_required
+def delete_score_entry(request, entry_id):
+    """Delete a score entry."""
+    if not can_manage_scores(request.user):
+        messages.error(request, "Permission denied.")
+        return redirect('moderator:dashboard')
+
+    from scores.models import ScoreEntry
+
+    entry = get_object_or_404(ScoreEntry, pk=entry_id)
+    user_id = entry.user_id
+    session_id = entry.session_id
+    entry.delete()
+    messages.success(request, "Score entry deleted.")
+    return redirect(f"{request.path.rsplit('/delete/', 1)[0].rsplit('/', 2)[0]}/player/{user_id}/?session={session_id}")

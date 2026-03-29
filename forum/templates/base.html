@@ -305,11 +305,9 @@
                 .catch(error => console.error('Error fetching notification count:', error));
         }
         
-        // Update on page load
         updateNotificationCount();
         
-        // Update every 60 seconds
-        setInterval(updateNotificationCount, 60000);
+        setInterval(updateNotificationCount, 300000);
     </script>
     {% endif %}
     

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load moderator_extras %}
 
 {% block title %}Add Results - {{ election.name }}{% endblock %}
 
@@ -173,7 +174,7 @@ function saveAllResults() {
     }
     
     // Save via AJAX
-    fetch('{% url "elections:bulk_add_results" election.id %}', {
+    fetch('{% url "moderator:bulk_add_results" election.id %}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

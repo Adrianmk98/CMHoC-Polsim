@@ -7,6 +7,14 @@ from .models import Bill, Vote, Ballot, PlayerHistory
 from .forms import BillForm, VoteForm, BallotForm
 
 
+def _active_score_session():
+    try:
+        from scores.models import ParliamentSession
+        return ParliamentSession.objects.filter(is_active=True).first()
+    except Exception:
+        return None
+
+
 def bill_list(request):
     """List all bills"""
     status_filter = request.GET.get('status', '')
@@ -50,6 +58,7 @@ def bill_detail(request, bill_id):
         'current_vote': current_vote,
         'user_ballot': user_ballot,
         'all_votes': bill.votes.all()[:5],
+        'active_score_session': _active_score_session(),
     }
     return render(request, 'bill_detail.html', context)
 

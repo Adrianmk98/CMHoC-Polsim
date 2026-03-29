@@ -17,13 +17,13 @@
             <div class="col-md-6">
                 <label class="form-label">Filter by Province/Territory</label>
                 <select name="province" class="form-select" onchange="this.form.submit()">
-                    <option value="">All Provinces & Territories</option>
-                    {% for code, name in province_choices %}
-                    <option value="{{ code }}" {% if province_filter == code %}selected{% endif %}>
-                        {{ name }}
-                    </option>
-                    {% endfor %}
-                </select>
+    <option value="">All Provinces & Territories</option>
+    {% for province in province_choices %}
+    <option value="{{ province.code }}" {% if province_filter == province.code %}selected{% endif %}>
+        {{ province }}
+    </option>
+    {% endfor %}
+</select>
             </div>
             <div class="col-md-6 d-flex align-items-end">
                 <a href="{% url 'riding_list' %}" class="btn btn-secondary">Clear Filter</a>

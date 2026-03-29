@@ -20,7 +20,15 @@ urlpatterns = [
     
     # Cabinet management
     path('cabinet/', views.cabinet_dashboard, name='cabinet_dashboard'),
-    
+
     # Bill management
     path('bills/', views.bill_dashboard, name='bill_dashboard'),
+
+    # Score management (moderator-only polling calculator)
+    path('scores/', views.scores_dashboard, name='scores_dashboard'),
+    path('scores/session/create/', views.session_create, name='session_create'),
+    path('scores/player/<int:user_id>/', views.player_scores, name='player_scores'),
+    path('scores/player/<int:user_id>/lt/', views.update_lt, name='update_lt'),
+    path('scores/player/<int:user_id>/add/', views.add_score_entry, name='add_score_entry'),
+    path('scores/entry/<int:entry_id>/delete/', views.delete_score_entry, name='delete_score_entry'),
 ]

@@ -1,22 +1,30 @@
 from django.contrib import admin
-from .models import PoliticalParty, UserProfile, ForumCategory, Thread, Post, Flair, PositionHistory, PartyHistory, Riding, Cabinet, CabinetPosition
+from .models import PoliticalParty, Province, UserProfile, ForumCategory, Thread, Post, Flair, PositionHistory, PartyHistory, Riding, Cabinet, CabinetPosition
 
-
+@admin.register(Province)
+class ProvinceAdmin(admin.ModelAdmin):
+    list_display = ['code', '__str__']
+    search_fields = ['code']
+    
 @admin.register(Riding)
 class RidingAdmin(admin.ModelAdmin):
-    list_display = ['name', 'province', 'population', 'is_active', 'current_mp']
-    list_filter = ['province', 'is_active']
-    search_fields = ['name', 'province']  # Required for autocomplete
-    ordering = ['province', 'name']
+    list_display = ['name', 'get_provinces', 'population', 'is_active', 'current_mp']
+    list_filter = ['provinces', 'is_active']
+    search_fields = ['name', 'provinces__code']
+    ordering = ['name']
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'province', 'is_active')
+            'fields': ('name', 'provinces', 'is_active')
         }),
         ('Details', {
             'fields': ('population', 'description')
         }),
     )
+    
+    def get_provinces(self, obj):
+        return ', '.join(str(p) for p in obj.provinces.all())
+    get_provinces.short_description = 'Provinces'
     
     def current_mp(self, obj):
         mp = obj.current_mp()

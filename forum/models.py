@@ -4,8 +4,7 @@ from django.utils import timezone
 from django.db.models import Q
 
 
-class Riding(models.Model):
-    """Electoral districts/ridings"""
+class Province(models.Model):
     PROVINCE_CHOICES = [
         ('AB', 'Alberta'),
         ('BC', 'British Columbia'),
@@ -22,24 +21,30 @@ class Riding(models.Model):
         ('YT', 'Yukon'),
     ]
     
+    code = models.CharField(max_length=2, choices=PROVINCE_CHOICES, unique=True)
+    
+    def __str__(self):
+        return self.get_code_display()
+
+
+class Riding(models.Model):
     name = models.CharField(max_length=200, unique=True)
-    province = models.CharField(max_length=2, choices=PROVINCE_CHOICES)
+    provinces = models.ManyToManyField(Province, related_name='ridings', blank=True)
     population = models.IntegerField(null=True, blank=True)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
-        ordering = ['province', 'name']
-    
+        ordering = ['name']
+
     def __str__(self):
-        return f"{self.name} ({self.get_province_display()})"
-    
+        province_list = ', '.join(str(p) for p in self.provinces.all())
+        return f"{self.name} ({province_list})"
+
     def current_mp(self):
-        """Get the current MP for this riding"""
         from django.contrib.auth.models import User
         try:
-            # Find user with current position as MP in this riding
             position = PositionHistory.objects.filter(
                 position_type='MP',
                 riding_obj=self,
