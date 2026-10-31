@@ -21,18 +21,30 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-pzdb%w=d-34)+(7s_#z=dhiz+li0hibm8ey6-&nm1tx6h+i7hd'
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
+
+# NPCs
+NPCS_ENABLED = config('NPCS_ENABLED', default=True, cast=bool)
+NPC_LLM_BACKEND = config('NPC_LLM_BACKEND', default='ollama')  # 'ollama' (local dev) or 'vertex' (production)
+
+# Local Ollama-backed NPCs
+OLLAMA_BASE_URL = config('OLLAMA_BASE_URL', default='http://localhost:11434')
+OLLAMA_MODEL = config('OLLAMA_MODEL', default='llama3.1')
+
+# Vertex AI-backed NPCs
+VERTEX_PROJECT_ID = config('VERTEX_PROJECT_ID', default='')
+VERTEX_LOCATION = config('VERTEX_LOCATION', default='us-central1')
+VERTEX_MODEL = config('VERTEX_MODEL', default='gemini-2.5-flash-lite')
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://*.trycloudflare.com',
-    'http://localhost:8000',
-    'http://10.0.0.222:8000',
-]
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://*.trycloudflare.com,http://localhost:8000'
+).split(',')
 
 # Application definition
 
@@ -51,11 +63,13 @@ INSTALLED_APPS = [
     'press',
     'parties',
     'scores',
+    'npcs',
     'django.contrib.humanize',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
