@@ -39,3 +39,6 @@ Thumbs.db
 *.sql
 *.sqlite
 *.db
+# Cloudflare Tunnel credentials (per-VM, never commit)
+cloudflared/config.yml
+cloudflared/*.json
