@@ -1,15 +1,10 @@
 version: '3.8'
 
 services:
-  db:
-    image: postgres:15-alpine
-    container_name: cmhoc_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: cmhoc_polsim_db
-      POSTGRES_USER: polsim_user
-      POSTGRES_PASSWORD: YourAppPassword123
+  cloud-sql-proxy:
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest
+    container_name: cmhoc_cloud_sql_proxy
+    command: --address 0.0.0.0 --port 5432 ${CLOUD_SQL_CONNECTION_NAME}
     restart: unless-stopped
     networks:
       - cmhoc_network
@@ -19,34 +14,44 @@ services:
     container_name: cmhoc_web
     command: gunicorn CMHoC_Polsim.wsgi:application --bind 0.0.0.0:8000 --workers 4
     volumes:
-      - .:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
-    ports:
-      - "8000:8000"
+    env_file:
+      - .env
     environment:
-      - DEBUG=False
-      - SECRET_KEY=${SECRET_KEY}
-      - DATABASE_URL=postgresql://polsim_user:YourAppPassword123@db:5432/cmhoc_polsim_db
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - DB_NAME=cmhoc_polsim_db
+      - DB_USER=polsim_user
+      - DB_HOST=cloud-sql-proxy
+      - DB_PORT=5432
     depends_on:
-      - db
+      - cloud-sql-proxy
     restart: unless-stopped
     networks:
       - cmhoc_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
 
-  # nginx removed - using Cloudflare tunnel instead
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cmhoc_cloudflared
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      - web
+    restart: unless-stopped
+    networks:
+      - cmhoc_network
 
   watchtower:
     image: containrrr/watchtower
     container_name: cmhoc_watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 300 --cleanup
+    command: --interval 300 --cleanup --label-enable
     restart: unless-stopped
 
 volumes:
-  postgres_data:
   static_volume:
   media_volume:
 
