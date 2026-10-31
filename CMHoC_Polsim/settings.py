@@ -29,6 +29,9 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # NPCs
 NPCS_ENABLED = config('NPCS_ENABLED', default=True, cast=bool)
 NPC_LLM_BACKEND = config('NPC_LLM_BACKEND', default='ollama')  # 'ollama' (local dev) or 'vertex' (production)
+# Minimum seconds between ANY two NPC-generated replies, site-wide, on top of each
+# NPC's own per-character cooldown_minutes - caps worst-case LLM call frequency/cost
+NPCS_GLOBAL_COOLDOWN_SECONDS = config('NPCS_GLOBAL_COOLDOWN_SECONDS', default=60, cast=int)
 
 # Local Ollama-backed NPCs
 OLLAMA_BASE_URL = config('OLLAMA_BASE_URL', default='http://localhost:11434')

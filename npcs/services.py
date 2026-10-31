@@ -1,13 +1,33 @@
 import logging
 import random
+from datetime import timedelta
 
 from django.conf import settings
+from django.utils import timezone
 
 from .models import NPCProfile
 
 logger = logging.getLogger(__name__)
 
 MAX_CONTEXT_POSTS = 6
+
+
+def _global_cooldown_active():
+    """A short, site-wide cooldown across *all* NPCs, independent of each NPC's own
+    per-character cooldown_minutes. Caps worst-case LLM call frequency even if many
+    NPCs happen to be off-cooldown and roll reply_chance favorably at once."""
+    seconds = settings.NPCS_GLOBAL_COOLDOWN_SECONDS
+    if seconds <= 0:
+        return False
+    last_posted_at = (
+        NPCProfile.objects.exclude(last_posted_at__isnull=True)
+        .order_by('-last_posted_at')
+        .values_list('last_posted_at', flat=True)
+        .first()
+    )
+    if last_posted_at is None:
+        return False
+    return timezone.now() < last_posted_at + timedelta(seconds=seconds)
 
 
 def _generate_reply(system_prompt, user_prompt):
@@ -39,6 +59,9 @@ def _npc_persona_header(npc_profile):
 
 def select_candidate_npc(exclude_user_ids=None):
     """Pick one eligible, off-cooldown NPC, weighted by reply_chance. Returns None if nobody qualifies."""
+    if _global_cooldown_active():
+        return None
+
     exclude_user_ids = exclude_user_ids or set()
 
     candidates = [
