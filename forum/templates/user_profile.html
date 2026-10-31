@@ -50,6 +50,7 @@
                         <li><span class="text-success">✓ Yea:</span> {{ history.yea_votes }}</li>
                         <li><span class="text-danger">✗ Nay:</span> {{ history.nay_votes }}</li>
                         <li><span class="text-secondary">○ Abstain:</span> {{ history.abstain_votes }}</li>
+                        <li><span class="text-warning">⚠ Missed:</span> {{ history.missed_votes }}</li>
                     </ul>
                 </div>
 
@@ -235,6 +236,24 @@
                         </div>
                         <small class="text-muted">
                             {{ ballot.vote_session.get_vote_type_display }} • {{ ballot.cast_at|timesince }} ago
+                        </small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Recent Missed Votes -->
+                {% if recent_missed_votes %}
+                <h6>Recent Missed Votes</h6>
+                <div class="list-group">
+                    {% for vote in recent_missed_votes %}
+                    <a href="{% url 'voting:bill_detail' vote.bill.id %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ vote.bill.bill_number }}: {{ vote.bill.title|truncatewords:8 }}</strong>
+                            <span class="badge bg-warning text-dark">Missed</span>
+                        </div>
+                        <small class="text-muted">
+                            {{ vote.get_vote_type_display }} • closed {{ vote.closes_at|timesince }} ago
                         </small>
                     </a>
                     {% endfor %}

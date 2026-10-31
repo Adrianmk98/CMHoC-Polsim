@@ -137,6 +137,7 @@ class PlayerHistory(models.Model):
     yea_votes = models.IntegerField(default=0)
     nay_votes = models.IntegerField(default=0)
     abstain_votes = models.IntegerField(default=0)
+    missed_votes = models.IntegerField(default=0)
     
     # Bill sponsorship
     bills_sponsored = models.IntegerField(default=0)
@@ -177,7 +178,10 @@ class PlayerHistory(models.Model):
         self.posts_made = Post.objects.filter(author=self.user).count()
         
         # Participation rate
-        total_votes_available = Vote.objects.filter(is_active=False).count()
+        closed_votes = Vote.objects.filter(is_active=False)
+        total_votes_available = closed_votes.count()
+        voted_session_ids = ballots.filter(vote_session__in=closed_votes).values_list('vote_session_id', flat=True)
+        self.missed_votes = closed_votes.exclude(id__in=voted_session_ids).count()
         if total_votes_available > 0:
             self.participation_rate = (self.total_votes / total_votes_available) * 100
 
