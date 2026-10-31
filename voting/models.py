@@ -3,6 +3,40 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 
+def _position_periods(user, position_type):
+    from forum.models import PositionHistory
+    return list(
+        PositionHistory.objects.filter(
+            user_profile__user=user, position_type=position_type
+        ).values_list('start_date', 'end_date')
+    )
+
+
+def _covered_by(periods, dt):
+    d = dt.date() if hasattr(dt, 'date') else dt
+    return any(start <= d and (end is None or d <= end) for start, end in periods)
+
+
+def missable_votes_for(user):
+    """Closed votes the user actually held a seat for (MP for Commons bills,
+    Senator for Senate bills) at the time the vote closed - i.e. votes they
+    could plausibly have missed."""
+    mp_periods = _position_periods(user, 'MP')
+    senator_periods = _position_periods(user, 'SENATOR')
+    if not mp_periods and not senator_periods:
+        return Vote.objects.none()
+
+    ids = [
+        vote.id
+        for vote in Vote.objects.filter(is_active=False).select_related('bill')
+        if _covered_by(
+            senator_periods if vote.bill.chamber == 'SENATE' else mp_periods,
+            vote.closes_at,
+        )
+    ]
+    return Vote.objects.filter(id__in=ids)
+
+
 class Bill(models.Model):
     """Legislative bills for voting"""
     STATUS_CHOICES = [
@@ -177,13 +211,16 @@ class PlayerHistory(models.Model):
         self.threads_created = Thread.objects.filter(author=self.user).count()
         self.posts_made = Post.objects.filter(author=self.user).count()
         
-        # Participation rate
-        closed_votes = Vote.objects.filter(is_active=False)
-        total_votes_available = closed_votes.count()
-        voted_session_ids = ballots.filter(vote_session__in=closed_votes).values_list('vote_session_id', flat=True)
-        self.missed_votes = closed_votes.exclude(id__in=voted_session_ids).count()
+        # Participation rate - only counts votes held while the user actually
+        # had a seat (MP/Senator); you can't miss a vote you weren't eligible to cast
+        missable_votes = missable_votes_for(self.user)
+        total_votes_available = missable_votes.count()
+        voted_session_ids = ballots.filter(vote_session__in=missable_votes).values_list('vote_session_id', flat=True)
+        self.missed_votes = missable_votes.exclude(id__in=voted_session_ids).count()
         if total_votes_available > 0:
             self.participation_rate = (self.total_votes / total_votes_available) * 100
+        else:
+            self.participation_rate = 0.0
 
         self.save()
 
