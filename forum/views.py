@@ -261,7 +261,7 @@ def create_thread(request, category_id):
 def user_profile(request, userid):
     """Display user profile with player history"""
     from django.contrib.auth.models import User
-    from voting.models import PlayerHistory, Ballot, Vote
+    from voting.models import PlayerHistory, Ballot, missable_votes_for
 
     user = get_object_or_404(User, id=userid)
 
@@ -277,7 +277,7 @@ def user_profile(request, userid):
     recent_votes = Ballot.objects.filter(voter=user).order_by('-cast_at')[:10]
 
     voted_session_ids = Ballot.objects.filter(voter=user).values_list('vote_session_id', flat=True)
-    recent_missed_votes = Vote.objects.filter(is_active=False).exclude(
+    recent_missed_votes = missable_votes_for(user).exclude(
         id__in=voted_session_ids
     ).select_related('bill').order_by('-closes_at')[:10]
 
