@@ -117,10 +117,16 @@ def press_create(request):
             press_release = form.save(commit=False)
             press_release.author = request.user
             
-            # Set party from user profile if available
+            # Set party from user profile if available (PressRelease.party is the fixed
+            # real-world party enum, not the player-created party the user belongs to)
             try:
-                press_release.party = request.user.profile.party
-            except:
+                profile_party = request.user.profile.party
+                if profile_party:
+                    from forum.models import PoliticalParty
+                    press_release.party = PoliticalParty.objects.filter(
+                        name__iexact=profile_party.abbreviation
+                    ).first()
+            except Exception:
                 pass
             
             press_release.save()

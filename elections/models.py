@@ -128,9 +128,12 @@ class RidingElectionResult(models.Model):
         if self.total_registered_voters and self.total_votes_cast:
             self.turnout_percentage = (self.total_votes_cast / self.total_registered_voters) * 100
         
-        # Set winning party from winner
-        if self.winner and not self.winning_party:
-            self.winning_party = self.winner.party
+        # Set winning party from winner (winner.party is the real joinable party;
+        # winning_party is the fixed real-world party enum, so resolve by abbreviation)
+        if self.winner and not self.winning_party and self.winner.party:
+            self.winning_party = PoliticalParty.objects.filter(
+                name__iexact=self.winner.party.abbreviation
+            ).first()
         
         super().save(*args, **kwargs)
     

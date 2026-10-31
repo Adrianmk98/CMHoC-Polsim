@@ -50,7 +50,7 @@
                                     </h6>
                                     {% if current_mp.profile.party %}
                                         <span class="party-badge" style="background-color: {{ current_mp.profile.party.color }};">
-                                            {{ current_mp.profile.party.get_name_display }}
+                                            {{ current_mp.profile.party.name }}
                                         </span>
                                     {% endif %}
                                     {% if current_mp.profile.role %}
@@ -97,7 +97,7 @@
                                     </h6>
                                     {% if position.user_profile.party %}
                                         <span class="party-badge" style="background-color: {{ position.user_profile.party.color }};">
-                                            {{ position.user_profile.party.get_name_display }}
+                                            {{ position.user_profile.party.name }}
                                         </span>
                                     {% endif %}
                                     {% if position.notes %}

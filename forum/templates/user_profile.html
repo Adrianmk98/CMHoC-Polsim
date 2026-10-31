@@ -12,7 +12,7 @@
                 
                 {% if profile.party %}
                     <span class="party-badge mt-2 d-inline-block" style="background-color: {{ profile.party.color }};">
-                        {{ profile.party.get_name_display }}
+                        {{ profile.party.name }}
                     </span>
                 {% endif %}
                 
@@ -141,7 +141,7 @@
                                         <h6 class="mb-1">
                                             {% if affiliation.party %}
                                                 <span class="party-badge" style="background-color: {{ affiliation.party.color }};">
-                                                    {{ affiliation.party.get_name_display }}
+                                                    {{ affiliation.party.name }}
                                                 </span>
                                             {% else %}
                                                 <span class="badge bg-secondary">Independent</span>

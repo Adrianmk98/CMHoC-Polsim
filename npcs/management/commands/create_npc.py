@@ -1,8 +1,9 @@
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
 
-from forum.models import PoliticalParty, Riding, UserProfile
+from forum.models import Riding, UserProfile
 from npcs.models import NPCProfile
+from parties.models import Party, PartyMembership
 
 
 class Command(BaseCommand):
@@ -26,10 +27,9 @@ class Command(BaseCommand):
 
         party = None
         if options['party']:
-            try:
-                party = PoliticalParty.objects.get(name=options['party'])
-            except PoliticalParty.DoesNotExist:
-                raise CommandError(f'No PoliticalParty with code "{options["party"]}"')
+            party = Party.objects.filter(abbreviation__iexact=options['party']).first()
+            if not party:
+                raise CommandError(f'No Party with abbreviation "{options["party"]}"')
 
         riding = None
         if options['riding']:
@@ -47,10 +47,14 @@ class Command(BaseCommand):
         user.save()
 
         profile, _ = UserProfile.objects.get_or_create(user=user)
-        profile.party = party
         profile.riding = riding
         profile.role = options['role']
         profile.save()
+
+        if party:
+            PartyMembership.objects.get_or_create(
+                user=user, party=party, defaults={'is_active': True}
+            )
 
         NPCProfile.objects.create(
             user_profile=profile,

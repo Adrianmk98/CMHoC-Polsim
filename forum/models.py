@@ -99,7 +99,9 @@ class PoliticalParty(models.Model):
 class UserProfile(models.Model):
     """Extended user profile for political simulation"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    party = models.ForeignKey(PoliticalParty, on_delete=models.SET_NULL, null=True, blank=True)
+    party = models.ForeignKey(
+        'parties.Party', on_delete=models.SET_NULL, null=True, blank=True, related_name='tagged_profiles'
+    )
     riding = models.ForeignKey(Riding, on_delete=models.SET_NULL, null=True, blank=True, related_name='representatives')
     riding_name = models.CharField(max_length=200, blank=True)  # Deprecated: kept for backwards compatibility
     role = models.CharField(max_length=100, blank=True)  # e.g., MP, Senator, Minister
@@ -194,7 +196,9 @@ class PositionHistory(models.Model):
 class PartyHistory(models.Model):
     """Track changes in party affiliation"""
     user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='party_history')
-    party = models.ForeignKey(PoliticalParty, on_delete=models.SET_NULL, null=True)
+    party = models.ForeignKey(
+        'parties.Party', on_delete=models.SET_NULL, null=True, related_name='history_entries'
+    )
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)  # Null means current affiliation
     reason = models.CharField(max_length=200, blank=True)  # e.g., "Crossed the floor", "Election"
@@ -206,7 +210,7 @@ class PartyHistory(models.Model):
     
     def __str__(self):
         status = "Current" if not self.end_date else "Former"
-        party_name = self.party.get_name_display() if self.party else "Independent"
+        party_name = self.party.name if self.party else "Independent"
         return f"{status}: {self.user_profile.user.username} - {party_name}"
     
     def is_current(self):
