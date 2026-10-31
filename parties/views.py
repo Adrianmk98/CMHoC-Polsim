@@ -161,18 +161,26 @@ def join_party(request, pk):
         return redirect('parties:detail', pk=pk)
 
     # Check if already has pending request
-    if JoinRequest.objects.filter(user=request.user, party=party, status='PENDING').exists():
+    existing_request = JoinRequest.objects.filter(user=request.user, party=party).first()
+    if existing_request and existing_request.status == 'PENDING':
         messages.error(request, 'You already have a pending join request.')
         return redirect('parties:detail', pk=pk)
-    
+
     if request.method == 'POST':
         form = JoinRequestForm(request.POST)
         if form.is_valid():
+            # JoinRequest is unique on (user, party), so a user who previously had an
+            # approved/rejected request for this party must reuse that row, not insert a new one.
             join_request = form.save(commit=False)
+            join_request.pk = existing_request.pk if existing_request else None
             join_request.user = request.user
             join_request.party = party
+            join_request.status = 'PENDING'
+            join_request.reviewed_by = None
+            join_request.reviewed_at = None
+            join_request.requested_at = timezone.now()
             join_request.save()
-            
+
             messages.success(request, f'Join request sent to {party.name}. You will be notified when reviewed.')
             return redirect('parties:detail', pk=pk)
     else:

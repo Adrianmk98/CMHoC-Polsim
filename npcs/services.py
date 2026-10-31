@@ -43,7 +43,7 @@ def _generate_reply(system_prompt, user_prompt):
 def _npc_persona_header(npc_profile):
     user = npc_profile.user_profile.user
     party = npc_profile.user_profile.party
-    party_name = party.get_name_display() if party else 'Independent'
+    party_name = party.name if party else 'Independent'
     role = npc_profile.user_profile.role or 'Member of Parliament'
     riding = npc_profile.user_profile.get_riding_display() or 'an unspecified riding'
 

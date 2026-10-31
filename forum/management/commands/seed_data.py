@@ -7,7 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from forum.models import (
-    Cabinet, CabinetPosition, Flair, ForumCategory, PartyHistory,
+    Cabinet, CabinetPosition, Flair, ForumCategory,
     PoliticalParty, PositionHistory, Post, Province, Riding, Thread,
     UserProfile,
 )
@@ -47,18 +47,19 @@ class Command(BaseCommand):
             provinces = self.seed_provinces()
             ridings = self.seed_ridings(provinces)
             parties = self.seed_forum_parties()
-            users = self.seed_users(ridings, parties)
+            org_parties = self.seed_party_orgs(parties)
+            users, user_party_codes = self.seed_users(ridings, org_parties)
+            self.seed_party_leadership(org_parties, users)
             self.seed_cabinet(users, parties)
             categories, flairs = self.seed_forum_categories()
             self.seed_threads_and_posts(categories, flairs, users)
             bills = self.seed_bills(users)
             self.seed_votes_and_debates(bills, users)
             self.seed_press(parties, users)
-            org_parties = self.seed_party_orgs(parties, users)
             self.seed_leadership_and_confidence(org_parties, users)
-            self.seed_elections(ridings, parties, users)
+            self.seed_elections(ridings, parties, users, user_party_codes)
             self.seed_scores(users)
-            self.seed_npcs(ridings, parties)
+            self.seed_npcs(ridings, org_parties)
 
         self.stdout.write(self.style.SUCCESS("Seed data complete."))
 
@@ -97,8 +98,9 @@ class Command(BaseCommand):
         self.stdout.write(f"Forum parties: {len(parties)}")
         return parties
 
-    def seed_users(self, ridings, parties):
+    def seed_users(self, ridings, org_parties):
         users = []
+        user_party_codes = {}
         party_cycle = ["LIB", "LIB", "LIB", "CON", "CON", "NDP", "NDP", "BQ", "GRN", "PPC"]
         for i, ((first, last), riding, party_code) in enumerate(zip(MP_NAMES, ridings, party_cycle)):
             username = f"test_mp_{i+1:02d}"
@@ -111,23 +113,26 @@ class Command(BaseCommand):
                 user.save()
 
             profile, _ = UserProfile.objects.get_or_create(user=user)
-            profile.party = parties[party_code]
             profile.riding = riding
             profile.role = "MP"
             profile.bio = f"{first} {last} is the Member of Parliament for {riding.name}."
             profile.save()
 
+            # Joining the org triggers the signal that fills in profile.party/PartyHistory
+            org = org_parties.get(party_code)
+            if org:
+                PartyMembership.objects.get_or_create(
+                    user=user, party=org, defaults={"is_founding_member": True, "is_active": True},
+                )
+
             PositionHistory.objects.get_or_create(
                 user_profile=profile, position_type="MP", position_title="Member of Parliament",
                 defaults={"riding_obj": riding, "start_date": timezone.now().date() - timedelta(days=365)},
             )
-            PartyHistory.objects.get_or_create(
-                user_profile=profile, party=parties[party_code],
-                defaults={"start_date": timezone.now().date() - timedelta(days=365)},
-            )
             users.append(user)
+            user_party_codes[user.username] = party_code
         self.stdout.write(f"Test MPs: {len(users)}")
-        return users
+        return users, user_party_codes
 
     def seed_cabinet(self, users, parties):
         pm_user = users[0]  # LIB
@@ -277,15 +282,20 @@ class Command(BaseCommand):
 
     # --- parties (org app) ---
 
-    def seed_party_orgs(self, parties, users):
+    def seed_party_orgs(self, parties):
+        """Create the actual joinable party orgs - this is what UserProfile.party/PartyHistory
+        point at. Leadership roles are assigned afterwards, once seed_users exists, by seed_leadership_roles."""
         org_specs = [
-            ("Liberal Party of Canada", "LIB", "CENTER_LEFT", users[0], users[1]),
-            ("Conservative Party of Canada", "CON", "RIGHT", users[4] if len(users) > 4 else users[0], users[0]),
-            ("New Democratic Party", "NDP", "LEFT", users[5] if len(users) > 5 else users[0], users[0]),
+            ("Liberal Party of Canada", "LIB", "CENTER_LEFT"),
+            ("Conservative Party of Canada", "CON", "RIGHT"),
+            ("New Democratic Party", "NDP", "LEFT"),
+            ("Bloc Québécois", "BQ", "CENTER_LEFT"),
+            ("Green Party of Canada", "GRN", "LEFT"),
+            ("People's Party of Canada", "PPC", "RIGHT"),
         ]
         org_parties = {}
-        for name, code, ideology, leader, press_sec in org_specs:
-            org, created = Party.objects.get_or_create(
+        for name, code, ideology in org_specs:
+            org, _ = Party.objects.get_or_create(
                 name=name,
                 defaults={
                     "abbreviation": code, "ideology": ideology,
@@ -293,10 +303,19 @@ class Command(BaseCommand):
                 },
             )
             org_parties[code] = org
-            for user in users:
-                profile = getattr(user, "profile", None)
-                if profile and profile.party and profile.party.name == code:
-                    PartyMembership.objects.get_or_create(user=user, party=org, defaults={"is_founding_member": True})
+        self.stdout.write(f"Party orgs: {len(org_parties)}")
+        return org_parties
+
+    def seed_party_leadership(self, org_parties, users):
+        leadership_specs = [
+            ("LIB", users[0], users[1] if len(users) > 1 else users[0]),
+            ("CON", users[4] if len(users) > 4 else users[0], users[0]),
+            ("NDP", users[5] if len(users) > 5 else users[0], users[0]),
+        ]
+        for code, leader, press_sec in leadership_specs:
+            org = org_parties.get(code)
+            if not org:
+                continue
             PartyRole.objects.get_or_create(
                 party=org, user=leader, role="LEADER", defaults={"appointed_by": leader},
             )
@@ -304,8 +323,6 @@ class Command(BaseCommand):
                 PartyRole.objects.get_or_create(
                     party=org, user=press_sec, role="PRESS", defaults={"appointed_by": leader},
                 )
-        self.stdout.write(f"Party orgs: {len(org_parties)}")
-        return org_parties
 
     def seed_leadership_and_confidence(self, org_parties, users):
         ndp = org_parties.get("NDP")
@@ -316,7 +333,7 @@ class Command(BaseCommand):
 
     # --- elections ---
 
-    def seed_elections(self, ridings, parties, users):
+    def seed_elections(self, ridings, parties, users, user_party_codes):
         election, _ = Election.objects.get_or_create(
             name="46th General Election",
             defaults={
@@ -336,8 +353,9 @@ class Command(BaseCommand):
             )
             if created:
                 winner_votes = int(total_votes * random.uniform(0.38, 0.55))
+                party_code = user_party_codes.get(user.username)
                 CandidateResult.objects.create(
-                    riding_result=result, candidate=profile, party=profile.party,
+                    riding_result=result, candidate=profile, party=parties.get(party_code),
                     votes=winner_votes, is_winner=True, is_incumbent=True,
                 )
         self.stdout.write(f"Election results: {RidingElectionResult.objects.filter(election=election).count()}")
@@ -358,7 +376,7 @@ class Command(BaseCommand):
 
     # --- npcs ---
 
-    def seed_npcs(self, ridings, parties):
+    def seed_npcs(self, ridings, org_parties):
         import os
         from django.conf import settings as dj_settings
 
@@ -387,10 +405,17 @@ class Command(BaseCommand):
             user.set_unusable_password()
             user.save()
             profile, _ = UserProfile.objects.get_or_create(user=user)
-            profile.party = parties[party_code]
             profile.riding = riding
             profile.role = "MP"
             profile.save()
+
+            # IND has no joinable org - an independent NPC simply has no party membership
+            org = org_parties.get(party_code)
+            if org:
+                PartyMembership.objects.get_or_create(
+                    user=user, party=org, defaults={"is_active": True},
+                )
+
             NPCProfile.objects.create(user_profile=profile, persona=persona_text)
             created_count += 1
         self.stdout.write(f"NPCs seeded: {created_count}")
