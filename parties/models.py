@@ -109,7 +109,14 @@ class PartyMembership(models.Model):
     class Meta:
         unique_together = ['user', 'party']
         ordering = ['-joined_at']
-    
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user'],
+                condition=models.Q(is_active=True),
+                name='unique_active_membership_per_user',
+            ),
+        ]
+
     def __str__(self):
         return f"{self.user.username} - {self.party.abbreviation}"
     
@@ -463,18 +470,21 @@ class JoinRequest(models.Model):
     
     def approve(self, reviewer):
         """Approve the join request"""
+        if PartyMembership.objects.filter(user=self.user, is_active=True).exclude(party=self.party).exists():
+            raise ValueError(f'{self.user.username} is already a member of another party.')
+
         self.status = 'APPROVED'
         self.reviewed_by = reviewer
         self.reviewed_at = timezone.now()
         self.save()
-        
+
         # Create membership
-        PartyMembership.objects.create(
+        PartyMembership.objects.update_or_create(
             user=self.user,
             party=self.party,
-            is_active=True
+            defaults={'is_active': True, 'left_at': None}
         )
-        
+
         # Update member count
         self.party.update_member_count()
     

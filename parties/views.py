@@ -87,6 +87,10 @@ def party_detail(request, pk):
 @login_required
 def create_party(request):
     """Create a new party"""
+    if PartyMembership.objects.filter(user=request.user, is_active=True).exists():
+        messages.error(request, 'You must leave your current party before founding a new one.')
+        return redirect('parties:party_list')
+
     if request.method == 'POST':
         form = PartyForm(request.POST)
         if form.is_valid():
@@ -141,11 +145,21 @@ def join_party(request, pk):
     """Request to join a party"""
     party = get_object_or_404(Party, pk=pk)
     
-    # Check if already a member
-    if PartyMembership.objects.filter(user=request.user, party=party, is_active=True).exists():
-        messages.error(request, 'You are already a member of this party.')
+    # Check if already a member of this or another party
+    existing_membership = PartyMembership.objects.filter(
+        user=request.user, is_active=True
+    ).select_related('party').first()
+    if existing_membership:
+        if existing_membership.party_id == party.pk:
+            messages.error(request, 'You are already a member of this party.')
+        else:
+            messages.error(
+                request,
+                f'You are already a member of {existing_membership.party.name}. '
+                'Leave your current party before joining a new one.'
+            )
         return redirect('parties:detail', pk=pk)
-    
+
     # Check if already has pending request
     if JoinRequest.objects.filter(user=request.user, party=party, status='PENDING').exists():
         messages.error(request, 'You already have a pending join request.')
@@ -224,8 +238,11 @@ def approve_join_request(request, pk):
         messages.error(request, 'Only party leadership can approve requests.')
         return redirect('parties:detail', pk=join_request.party.pk)
     
-    join_request.approve(request.user)
-    messages.success(request, f'{join_request.user.username} has been added to the party.')
+    try:
+        join_request.approve(request.user)
+        messages.success(request, f'{join_request.user.username} has been added to the party.')
+    except ValueError as e:
+        messages.error(request, str(e))
     
     return redirect('parties:manage_requests', pk=join_request.party.pk)
 
