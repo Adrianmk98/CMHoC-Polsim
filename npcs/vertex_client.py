@@ -12,7 +12,7 @@ def _get_client():
     if _client is None:
         from google import genai
         _client = genai.Client(
-            vertexai=True,
+            enterprise=True,
             project=settings.VERTEX_PROJECT_ID,
             location=settings.VERTEX_LOCATION,
         )
