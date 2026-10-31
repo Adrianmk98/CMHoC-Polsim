@@ -340,10 +340,6 @@ class Command(BaseCommand):
                     riding_result=result, candidate=profile, party=profile.party,
                     votes=winner_votes, is_winner=True, is_incumbent=True,
                 )
-                CandidateResult.objects.create(
-                    riding_result=result, candidate=profile, party=profile.party,
-                    votes=total_votes - winner_votes, is_winner=False,
-                )
         self.stdout.write(f"Election results: {RidingElectionResult.objects.filter(election=election).count()}")
 
     # --- scores ---
