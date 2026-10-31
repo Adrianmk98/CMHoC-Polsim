@@ -11,11 +11,16 @@ def _get_client():
     global _client
     if _client is None:
         from google import genai
-        _client = genai.Client(
-            enterprise=True,
-            project=settings.VERTEX_PROJECT_ID,
-            location=settings.VERTEX_LOCATION,
-        )
+        if settings.GEMINI_API_KEY:
+            # Gemini Developer API (AI Studio key) - used as a fallback when the
+            # GCE service account lacks generative-model access on Vertex AI.
+            _client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        else:
+            _client = genai.Client(
+                enterprise=True,
+                project=settings.VERTEX_PROJECT_ID,
+                location=settings.VERTEX_LOCATION,
+            )
     return _client
 
 
