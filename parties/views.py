@@ -91,8 +91,9 @@ def create_party(request):
         form = PartyForm(request.POST)
         if form.is_valid():
             party = form.save(commit=False)
+            party.leader = request.user
             party.save()
-            
+
             # Create founding membership
             membership = PartyMembership.objects.create(
                 user=request.user,
@@ -100,7 +101,15 @@ def create_party(request):
                 is_founding_member=True,
                 is_active=True
             )
-            
+
+            # Founder is interim leader until the founding election decides otherwise
+            PartyRole.objects.update_or_create(
+                party=party,
+                user=request.user,
+                role='LEADER',
+                defaults={'is_active': True}
+            )
+
             # Create founding leadership election
             election = LeadershipElection.objects.create(
                 party=party,
