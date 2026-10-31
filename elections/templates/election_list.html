@@ -88,7 +88,7 @@
                     </h6>
                     {% if election.riding %}
                         <p class="mb-1">
-                            <strong>Riding:</strong> {{ election.riding.name }}, {{ election.riding.get_province_display }}
+                            <strong>Riding:</strong> {{ election.riding.name }}, {{ election.riding.province_display }}
                         </p>
                     {% endif %}
                     <small class="text-muted">{{ election.election_date|date:"F d, Y" }}</small>

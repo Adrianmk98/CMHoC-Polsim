@@ -32,7 +32,7 @@
                             {% for request in pending_requests %}
                             <tr>
                                 <td>
-                                    <a href="{% url 'user_profile' request.user.username %}">
+                                    <a href="{% url 'user_profile' request.user.id %}">
                                         {{ request.user.username }}
                                     </a>
                                 </td>

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Press Releases by {{ party.name }} - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'press:list' %}">Press Releases</a></li>
+                <li class="breadcrumb-item active">{{ party.name }}</li>
+            </ol>
+        </nav>
+        <h2 class="mb-4">
+            📰 Press Releases by
+            <span class="badge" style="background-color: {{ party.color }};">{{ party.name }}</span>
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    {% for pr in press_releases %}
+    <div class="col-12 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">
+                    <a href="{% url 'press:detail' pr.slug %}">{{ pr.title }}</a>
+                </h4>
+                <p class="text-muted">
+                    <small>
+                        By <a href="{% url 'press:by_author' pr.author.username %}">{{ pr.author.username }}</a>
+                        • {{ pr.published_at|date:"F d, Y g:i A" }}
+                        • <span class="badge bg-secondary">{{ pr.get_category_display }}</span>
+                        • 👁️ {{ pr.view_count }} views
+                    </small>
+                </p>
+                <p class="card-text">{{ pr.excerpt }}</p>
+                <a href="{% url 'press:detail' pr.slug %}" class="btn btn-sm btn-primary">Read Full Release</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            {{ party.name }} has not published any press releases yet.
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if press_releases.has_other_pages %}
+<nav>
+    <ul class="pagination">
+        {% if press_releases.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1">First</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ press_releases.previous_page_number }}">Previous</a>
+            </li>
+        {% endif %}
+
+        <li class="page-item active">
+            <span class="page-link">Page {{ press_releases.number }} of {{ press_releases.paginator.num_pages }}</span>
+        </li>
+
+        {% if press_releases.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ press_releases.next_page_number }}">Next</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ press_releases.paginator.num_pages }}">Last</a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}

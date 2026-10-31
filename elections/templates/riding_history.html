@@ -20,7 +20,7 @@
         <div class="card mb-3">
             <div class="card-header bg-primary text-white">
                 <h3 class="mb-0">📜 Election History</h3>
-                <p class="mb-0">{{ riding.name }}, {{ riding.get_province_display }}</p>
+                <p class="mb-0">{{ riding.name }}, {{ riding.province_display }}</p>
             </div>
             <div class="card-body">
                 <p class="text-muted">Complete record of all elections held in this riding.</p>
@@ -100,7 +100,7 @@
             </div>
             <div class="card-body">
                 <p><strong>Name:</strong> {{ riding.name }}</p>
-                <p><strong>Province:</strong> {{ riding.get_province_display }}</p>
+                <p><strong>Province:</strong> {{ riding.province_display }}</p>
                 {% if riding.population %}
                     <p><strong>Population:</strong> {{ riding.population }}</p>
                 {% endif %}

@@ -21,7 +21,7 @@
         <div class="card mb-3">
             <div class="card-header bg-primary text-white">
                 <h2 class="mb-0">{{ riding.name }}</h2>
-                <p class="mb-0">{{ riding.get_province_display }}</p>
+                <p class="mb-0">{{ riding.province_display }}</p>
             </div>
             <div class="card-body">
                 <div class="row">
@@ -29,7 +29,7 @@
                         {% if riding.population %}
                             <p><strong>Population:</strong> {{ riding.population|intcomma }}</p>
                         {% endif %}
-                        <p><strong>Province:</strong> {{ riding.get_province_display }}</p>
+                        <p><strong>Province:</strong> {{ riding.province_display }}</p>
                         <p><strong>Status:</strong> 
                             {% if riding.is_active %}
                                 <span class="badge bg-success">Active</span>
@@ -140,7 +140,7 @@
             </div>
             <div class="card-body">
                 <p><strong>Riding:</strong> {{ riding.name }}</p>
-                <p><strong>Province/Territory:</strong> {{ riding.get_province_display }}</p>
+                <p><strong>Province/Territory:</strong> {{ riding.province_display }}</p>
                 {% if riding.population %}
                     <p><strong>Population:</strong> {{ riding.population|intcomma }}</p>
                 {% endif %}
@@ -156,9 +156,13 @@
                 <a href="{% url 'riding_list' %}" class="btn btn-outline-primary w-100 mb-2">
                     View All Ridings
                 </a>
-                <a href="{% url 'riding_list' %}?province={{ riding.province }}" class="btn btn-outline-secondary w-100">
-                    View All in {{ riding.get_province_display }}
+                {% with first_province=riding.provinces.first %}
+                {% if first_province %}
+                <a href="{% url 'riding_list' %}?province={{ first_province.code }}" class="btn btn-outline-secondary w-100">
+                    View All in {{ first_province }}
                 </a>
+                {% endif %}
+                {% endwith %}
             </div>
         </div>
     </div>
