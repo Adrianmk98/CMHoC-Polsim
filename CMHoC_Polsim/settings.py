@@ -37,7 +37,7 @@ OLLAMA_MODEL = config('OLLAMA_MODEL', default='llama3.1')
 # Vertex AI-backed NPCs
 VERTEX_PROJECT_ID = config('VERTEX_PROJECT_ID', default='')
 VERTEX_LOCATION = config('VERTEX_LOCATION', default='us-central1')
-VERTEX_MODEL = config('VERTEX_MODEL', default='gemini-2.5-flash-lite')
+VERTEX_MODEL = config('VERTEX_MODEL', default='gemini-3.5-flash-lite')
 # If set, used instead of service-account auth (Gemini Developer API / AI Studio key)
 GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
 
