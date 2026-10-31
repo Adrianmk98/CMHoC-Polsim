@@ -45,7 +45,7 @@
                         <label class="form-label">Riding (For By-Elections) *</label>
                         <select name="riding" class="form-select">
                             <option value="">Select Riding...</option>
-                            {% regroup ridings by get_province_display as province_list %}
+                            {% regroup ridings by province_display as province_list %}
                             {% for province in province_list %}
                                 <optgroup label="{{ province.grouper }}">
                                     {% for riding in province.list %}

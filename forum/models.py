@@ -42,6 +42,10 @@ class Riding(models.Model):
         province_list = ', '.join(str(p) for p in self.provinces.all())
         return f"{self.name} ({province_list})"
 
+    @property
+    def province_display(self):
+        return ', '.join(str(p) for p in self.provinces.all())
+
     def current_mp(self):
         from django.contrib.auth.models import User
         try:

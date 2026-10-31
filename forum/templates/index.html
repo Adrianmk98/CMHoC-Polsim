@@ -96,7 +96,7 @@
                         <div class="d-flex align-items-center text-muted small">
                             <span class="me-3">
                                 <strong>By:</strong> 
-                                <a href="{% url 'press:by_author' press.author.id %}">{{ press.author.username }}</a>
+                                <a href="{% url 'press:by_author' press.author.username %}">{{ press.author.username }}</a>
                             </span>
                             {% if press.party %}
                                 <span class="me-3">
@@ -145,13 +145,13 @@
                 <p class="mb-2"><strong>{{ current_cabinet.name }}</strong></p>
                 <p class="mb-2">
                     <strong>Prime Minister:</strong><br>
-                    <a href="{% url 'user_profile' current_cabinet.prime_minister.user.username %}">
-                        {{ current_cabinet.prime_minister.user.username }}
+                    <a href="{% url 'user_profile' current_cabinet.prime_minister.id %}">
+                        {{ current_cabinet.prime_minister.username }}
                     </a>
-                    {% if current_cabinet.prime_minister.party %}
+                    {% if current_cabinet.prime_minister.profile.party %}
                         <br>
-                        <span class="badge" style="background-color: {{ current_cabinet.prime_minister.party.color }};">
-                            {{ current_cabinet.prime_minister.party.name }}
+                        <span class="badge" style="background-color: {{ current_cabinet.prime_minister.profile.party.color }};">
+                            {{ current_cabinet.prime_minister.profile.party.name }}
                         </span>
                     {% endif %}
                 </p>

@@ -27,7 +27,7 @@
                         <h5>{{ position.title }}</h5>
                         <p class="mb-1">
                             <strong>Member:</strong> 
-                            <a href="{% url 'user_profile' position.user_profile.user.username %}">
+                            <a href="{% url 'user_profile' position.user_profile.user.id %}">
                                 {{ position.user_profile.user.username }}
                             </a>
                         </p>
