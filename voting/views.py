@@ -20,7 +20,7 @@ def bill_list(request):
     status_filter = request.GET.get('status', '')
     chamber_filter = request.GET.get('chamber', '')
     
-    bills = Bill.objects.all()
+    bills = Bill.objects.all().select_related('sponsor', 'sponsor__profile')
     
     if status_filter:
         bills = bills.filter(status=status_filter)
@@ -45,7 +45,7 @@ def bill_detail(request, bill_id):
     """View bill details and vote"""
     from moderator.permissions import can_manage_bills
 
-    bill = get_object_or_404(Bill, pk=bill_id)
+    bill = get_object_or_404(Bill.objects.select_related('sponsor', 'sponsor__profile__party'), pk=bill_id)
     current_vote = bill.current_vote()
 
     user_ballot = None
@@ -131,8 +131,8 @@ def cast_vote(request, vote_id):
 
 def vote_results(request, vote_id):
     """View vote results"""
-    vote_session = get_object_or_404(Vote, pk=vote_id)
-    ballots = vote_session.ballot_set.all()
+    vote_session = get_object_or_404(Vote.objects.select_related('created_by', 'created_by__profile'), pk=vote_id)
+    ballots = vote_session.ballot_set.all().select_related('voter', 'voter__profile', 'voter__profile__party')
     
     # Group by vote choice
     yea_votes = ballots.filter(vote='YEA')

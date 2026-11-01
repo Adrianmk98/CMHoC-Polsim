@@ -136,7 +136,7 @@
             </div>
             <div class="card-body">
                 <p><strong>Name:</strong> {{ cabinet.name }}</p>
-                <p><strong>Prime Minister:</strong> {{ cabinet.prime_minister.username }}</p>
+                <p><strong>Prime Minister:</strong> {% include 'includes/avatar.html' with avatar_user=cabinet.prime_minister size=20 %} {{ cabinet.prime_minister.username }}</p>
                 {% if cabinet.government_party %}
                     <p><strong>Party:</strong> {{ cabinet.government_party.get_name_display }}</p>
                 {% endif %}

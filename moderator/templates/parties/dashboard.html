@@ -27,7 +27,7 @@
             <span class="badge" style="background-color: {{ party.color }};">&nbsp;&nbsp;</span>
             <strong class="ms-1">{{ party.name }} ({{ party.abbreviation }})</strong>
             {% if party.leader %}
-                <span class="ms-2 text-muted">Leader: {{ party.leader.username }}</span>
+                <span class="ms-2 text-muted">Leader: {% include 'includes/avatar.html' with avatar_user=party.leader size=16 %} {{ party.leader.username }}</span>
             {% else %}
                 <span class="ms-2 badge bg-danger">No Leader</span>
             {% endif %}
@@ -45,7 +45,7 @@
             <tbody>
                 {% for jr in party.pending_requests %}
                 <tr>
-                    <td><small>{{ jr.user.username }}</small></td>
+                    <td><small>{% include 'includes/avatar.html' with avatar_user=jr.user size=16 %} {{ jr.user.username }}</small></td>
                     <td><small class="text-muted">{{ jr.message|default:"—"|truncatechars:80 }}</small></td>
                     <td><small class="text-muted">{{ jr.requested_at|date:"M d, Y" }}</small></td>
                     <td class="text-end">
@@ -78,7 +78,7 @@
             <tbody>
                 {% for membership in party.active_members %}
                 <tr>
-                    <td><small>{{ membership.user.username }}{% if membership.is_founding_member %} <span class="badge bg-light text-dark">Founder</span>{% endif %}</small></td>
+                    <td><small>{% include 'includes/avatar.html' with avatar_user=membership.user size=16 %} {{ membership.user.username }}{% if membership.is_founding_member %} <span class="badge bg-light text-dark">Founder</span>{% endif %}</small></td>
                     <td>
                         {% for role in party.active_roles %}
                             {% if role.user_id == membership.user_id %}

@@ -15,7 +15,7 @@
                     <strong>Warning:</strong> This is a serious action. A vote of no confidence can remove the current party leader if it passes.
                 </div>
                 
-                <p><strong>Current Leader:</strong> {{ party.leader.username }}</p>
+                <p><strong>Current Leader:</strong> {% include 'includes/avatar.html' with avatar_user=party.leader size=24 %} {{ party.leader.username }}</p>
                 <p><strong>Threshold:</strong> 50% of voting members must vote "No Confidence" for this to pass</p>
                 <p><strong>Duration:</strong> 3 days</p>
                 

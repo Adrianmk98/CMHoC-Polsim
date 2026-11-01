@@ -47,7 +47,7 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <strong>{{ bill.bill_number }}: {{ bill.title }}</strong><br>
-                        <small class="text-muted">Sponsor: {{ bill.sponsor.username }} • {{ bill.created_at|date:"M d, Y" }}</small>
+                        <small class="text-muted">Sponsor: {% include 'includes/avatar.html' with avatar_user=bill.sponsor size=16 %} {{ bill.sponsor.username }} • {{ bill.created_at|date:"M d, Y" }}</small>
                     </div>
                     <span class="badge bg-{{ bill.status|lower }}">{{ bill.get_status_display }}</span>
                 </div>

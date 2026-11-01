@@ -111,6 +111,7 @@
             <div class="list-group list-group-flush">
                 {% for ballot in yea_votes %}
                 <div class="list-group-item">
+                    {% include 'includes/avatar.html' with avatar_user=ballot.voter size=24 %}
                     <strong>{{ ballot.voter.username }}</strong>
                     {% if ballot.voter.profile.party %}
                         <span class="party-badge ms-2" style="background-color: {{ ballot.voter.profile.party.color }};">
@@ -136,6 +137,7 @@
             <div class="list-group list-group-flush">
                 {% for ballot in nay_votes %}
                 <div class="list-group-item">
+                    {% include 'includes/avatar.html' with avatar_user=ballot.voter size=24 %}
                     <strong>{{ ballot.voter.username }}</strong>
                     {% if ballot.voter.profile.party %}
                         <span class="party-badge ms-2" style="background-color: {{ ballot.voter.profile.party.color }};">
@@ -161,6 +163,7 @@
             <div class="list-group list-group-flush">
                 {% for ballot in abstain_votes %}
                 <div class="list-group-item">
+                    {% include 'includes/avatar.html' with avatar_user=ballot.voter size=24 %}
                     <strong>{{ ballot.voter.username }}</strong>
                     {% if ballot.voter.profile.party %}
                         <span class="party-badge ms-2" style="background-color: {{ ballot.voter.profile.party.color }};">
@@ -201,7 +204,7 @@
                 <p><strong>Total Ballots:</strong> {{ vote_session.total_votes }}</p>
                 <p><strong>Opened:</strong> {{ vote_session.opened_at|date:"M d, Y" }}</p>
                 <p><strong>Closed:</strong> {{ vote_session.closes_at|date:"M d, Y" }}</p>
-                <p><strong>Opened By:</strong> {{ vote_session.created_by.username }}</p>
+                <p><strong>Opened By:</strong> {% include 'includes/avatar.html' with avatar_user=vote_session.created_by size=20 %} {{ vote_session.created_by.username }}</p>
             </div>
         </div>
     </div>

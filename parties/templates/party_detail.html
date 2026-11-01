@@ -55,7 +55,7 @@
                 <h5 class="mb-0">🚨 Vote of No Confidence</h5>
             </div>
             <div class="card-body">
-                <p><strong>Against:</strong> {{ active_confidence.target_leader.username }}</p>
+                <p><strong>Against:</strong> {% include 'includes/avatar.html' with avatar_user=active_confidence.target_leader size=24 %} {{ active_confidence.target_leader.username }}</p>
                 <p class="mb-2"><strong>Reason:</strong> {{ active_confidence.reason|truncatewords:30 }}</p>
                 <p class="small text-muted">Closes: {{ active_confidence.closes_at|date:"F d, Y g:i A" }}</p>
                 <a href="{% url 'parties:confidence_vote_detail' active_confidence.pk %}" class="btn btn-danger">

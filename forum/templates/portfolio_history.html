@@ -43,6 +43,7 @@
                                 <div class="col-md-8">
                                     <h6 class="mb-1">
                                         <a href="{% url 'user_profile' position.user_profile.user.id %}">
+                                            {% include 'includes/avatar.html' with avatar_user=position.user_profile.user size=24 %}
                                             {{ position.user_profile.user.username }}
                                         </a>
                                         {% if position.is_current %}

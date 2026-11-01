@@ -92,7 +92,7 @@
                 {% for p in players %}
                 <tr>
                     <td class="text-muted">{{ forloop.counter }}</td>
-                    <td>{{ p.user.username }}</td>
+                    <td>{% include 'includes/avatar.html' with avatar_user=p.user size=20 %} {{ p.user.username }}</td>
                     <td class="text-center">
                         {% if p.is_active_persona %}<span class="badge bg-success">✓</span>
                         {% else %}<span class="badge bg-secondary">✗</span>{% endif %}

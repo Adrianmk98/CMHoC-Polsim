@@ -20,7 +20,7 @@
             </div>
             <div class="card-body">
                 <div class="alert alert-info">
-                    <strong>Member:</strong> {{ position.user_profile.user.username }}<br>
+                    <strong>Member:</strong> {% include 'includes/avatar.html' with avatar_user=position.user_profile.user size=24 %} {{ position.user_profile.user.username }}<br>
                     <strong>Position Type:</strong> {{ position.get_position_type_display }}<br>
                     <strong>Appointed:</strong> {{ position.start_date|date:"F d, Y" }}
                 </div>

@@ -23,7 +23,7 @@
         <p>You are ending the following position:</p>
         <ul>
             <li><strong>{{ position.title }}</strong></li>
-            <li>Member: {{ position.user_profile.user.username }}</li>
+            <li>Member: {% include 'includes/avatar.html' with avatar_user=position.user_profile.user size=20 %} {{ position.user_profile.user.username }}</li>
             <li>Cabinet: {{ cabinet.name }}</li>
             <li>Started: {{ position.start_date|date:"F d, Y" }}</li>
         </ul>
