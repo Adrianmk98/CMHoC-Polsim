@@ -122,7 +122,8 @@
                         <td>
                             {% if result.winner %}
                                 <a href="{% url 'user_profile' result.winner.user.id %}">
-                                    {{ result.winner.user.id }}
+                                    {% include 'includes/avatar.html' with avatar_user=result.winner.user size=24 %}
+                                    {{ result.winner.user.username }}
                                 </a>
                                 {% if result.is_acclaimed %}
                                     <span class="badge bg-info">Acclaimed</span>

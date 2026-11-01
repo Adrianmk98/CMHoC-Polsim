@@ -11,8 +11,8 @@
                 <p class="mb-0">{{ confidence_vote.party.name }}</p>
             </div>
             <div class="card-body">
-                <p><strong>Against:</strong> {{ confidence_vote.target_leader.username }}</p>
-                <p><strong>Initiated by:</strong> {{ confidence_vote.initiated_by.username }}</p>
+                <p><strong>Against:</strong> {% include 'includes/avatar.html' with avatar_user=confidence_vote.target_leader size=24 %} {{ confidence_vote.target_leader.username }}</p>
+                <p><strong>Initiated by:</strong> {% include 'includes/avatar.html' with avatar_user=confidence_vote.initiated_by size=24 %} {{ confidence_vote.initiated_by.username }}</p>
                 <p><strong>Date:</strong> {{ confidence_vote.initiated_at|date:"F d, Y g:i A" }}</p>
                 
                 <h5>Reason</h5>
@@ -78,7 +78,7 @@
             </div>
             <div class="card-body">
                 <p><strong>Party:</strong> {{ confidence_vote.party.name }}</p>
-                <p><strong>Target:</strong> {{ confidence_vote.target_leader.username }}</p>
+                <p><strong>Target:</strong> {% include 'includes/avatar.html' with avatar_user=confidence_vote.target_leader size=20 %} {{ confidence_vote.target_leader.username }}</p>
                 <p><strong>Threshold:</strong> {{ confidence_vote.threshold_percentage }}%</p>
                 <p><strong>Opens:</strong> {{ confidence_vote.opens_at|date:"M d, g:i A" }}</p>
                 <p><strong>Closes:</strong> {{ confidence_vote.closes_at|date:"M d, g:i A" }}</p>

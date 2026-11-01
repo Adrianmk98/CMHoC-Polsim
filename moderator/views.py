@@ -335,7 +335,9 @@ def cabinet_dashboard(request):
         messages.error(request, "You don't have permission to manage cabinets.")
         return redirect('moderator:dashboard')
 
-    cabinets = Cabinet.objects.all().order_by('-start_date').prefetch_related(
+    cabinets = Cabinet.objects.all().order_by('-start_date').select_related(
+        'prime_minister', 'prime_minister__profile'
+    ).prefetch_related(
         'positions__user_profile__user', 'positions__user_profile__party'
     )
     current_cabinet = Cabinet.objects.filter(is_current=True).first()
@@ -536,7 +538,7 @@ def bill_dashboard(request):
         messages.error(request, "You don't have permission to manage bills.")
         return redirect('moderator:dashboard')
     
-    bills = Bill.objects.all().order_by('-created_at')
+    bills = Bill.objects.all().select_related('sponsor', 'sponsor__profile').order_by('-created_at')
     active_votes = Vote.objects.filter(is_active=True)
     
     context = {
@@ -570,7 +572,7 @@ def scores_dashboard(request):
         active_session = ParliamentSession.objects.filter(is_active=True).first()
 
     from scores.models import ScoreEntry
-    all_users = User.objects.filter(is_active=True).order_by('username')
+    all_users = User.objects.filter(is_active=True).select_related('profile').order_by('username')
     players = []
     if active_session:
         for user in all_users:
@@ -779,10 +781,10 @@ def party_dashboard(request):
         messages.error(request, "You don't have permission to manage parties.")
         return redirect('moderator:dashboard')
 
-    parties = Party.objects.all().select_related('leader').prefetch_related(
+    parties = Party.objects.all().select_related('leader', 'leader__profile').prefetch_related(
         Prefetch(
             'members',
-            queryset=PartyMembership.objects.filter(is_active=True).select_related('user').order_by('user__username'),
+            queryset=PartyMembership.objects.filter(is_active=True).select_related('user', 'user__profile').order_by('user__username'),
             to_attr='active_members',
         ),
         Prefetch(
@@ -792,7 +794,7 @@ def party_dashboard(request):
         ),
         Prefetch(
             'join_requests',
-            queryset=JoinRequest.objects.filter(status='PENDING').select_related('user').order_by('requested_at'),
+            queryset=JoinRequest.objects.filter(status='PENDING').select_related('user', 'user__profile').order_by('requested_at'),
             to_attr='pending_requests',
         ),
     ).order_by('name')

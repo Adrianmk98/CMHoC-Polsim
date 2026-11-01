@@ -22,7 +22,7 @@
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
                             <p class="mb-1">
-                                <strong>By:</strong> <a href="{% url 'press:by_author' press_release.author.username %}">{{ press_release.author.username }}</a>
+                                <strong>By:</strong> <a href="{% url 'press:by_author' press_release.author.username %}">{% include 'includes/avatar.html' with avatar_user=press_release.author size=24 %} {{ press_release.author.username }}</a>
                                 {% if press_release.party %}
                                     | <a href="{% url 'press:by_party' press_release.party.id %}">
                                         <span class="badge" style="background-color: {{ press_release.party.color }};">
@@ -102,6 +102,7 @@
                 <div class="mb-3 pb-3 border-bottom">
                     <div class="d-flex justify-content-between">
                         <div>
+                            {% include 'includes/avatar.html' with avatar_user=comment.author size=24 %}
                             <strong>{{ comment.author.username }}</strong>
                             {% if comment.author.profile.party %}
                                 <span class="party-badge" style="background-color: {{ comment.author.profile.party.color }};">
@@ -133,6 +134,7 @@
                             <strong>{{ pr.title }}</strong>
                             <br>
                             <small class="text-muted">
+                                {% include 'includes/avatar.html' with avatar_user=pr.author size=16 %}
                                 {{ pr.author.username }} • {{ pr.published_at|date:"F d, Y" }}
                             </small>
                         </div>
@@ -157,7 +159,7 @@
             </div>
             <div class="card-body">
                 <p><strong>Category:</strong> {{ press_release.get_category_display }}</p>
-                <p><strong>Author:</strong> {{ press_release.author.username }}</p>
+                <p><strong>Author:</strong> {% include 'includes/avatar.html' with avatar_user=press_release.author size=20 %} {{ press_release.author.username }}</p>
                 {% if press_release.party %}
                     <p><strong>Party:</strong> {{ press_release.party.get_name_display }}</p>
                 {% endif %}
@@ -229,7 +231,7 @@
                     <input type="hidden" name="next" value="{{ request.path }}">
                     <div class="row g-2 align-items-end">
                         <div class="col-md-2">
-                            <label class="form-label">Score for <strong>{{ press_release.author.username }}</strong></label>
+                            <label class="form-label">Score for {% include 'includes/avatar.html' with avatar_user=press_release.author size=20 %} <strong>{{ press_release.author.username }}</strong></label>
                             <input type="number" step="0.01" name="score" class="form-control" placeholder="0.00" required>
                         </div>
                         <div class="col-md-6">

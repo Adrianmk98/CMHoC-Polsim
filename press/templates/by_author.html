@@ -11,7 +11,7 @@
                 <li class="breadcrumb-item active">{{ author.username }}</li>
             </ol>
         </nav>
-        <h2 class="mb-4">📰 Press Releases by {{ author.username }}</h2>
+        <h2 class="mb-4 d-flex align-items-center gap-2">📰 Press Releases by {% include 'includes/avatar.html' with avatar_user=author size=32 %} {{ author.username }}</h2>
     </div>
 </div>
 

@@ -28,7 +28,7 @@
             {% if cabinet.is_current %}<span class="badge bg-light text-dark ms-2">Current</span>{% endif %}
             {% if cabinet.prime_minister %}
                 <span class="ms-2 {% if cabinet.is_current %}text-white-50{% else %}text-muted{% endif %}">
-                    PM: {{ cabinet.prime_minister.username }}
+                    PM: {% include 'includes/avatar.html' with avatar_user=cabinet.prime_minister size=16 %} {{ cabinet.prime_minister.username }}
                 </span>
             {% endif %}
         </div>
@@ -55,7 +55,7 @@
                 {% for pos in positions %}
                 <tr {% if pos.end_date %}class="text-muted"{% endif %}>
                     <td><small>{{ pos.get_position_type_display }}</small></td>
-                    <td><small>{{ pos.user_profile.user.username }}</small></td>
+                    <td><small>{% include 'includes/avatar.html' with avatar_user=pos.user_profile.user size=16 %} {{ pos.user_profile.user.username }}</small></td>
                     <td><small>{{ pos.portfolio }}</small></td>
                     <td><small>{{ pos.start_date|date:"M d, Y" }}</small></td>
                     <td>

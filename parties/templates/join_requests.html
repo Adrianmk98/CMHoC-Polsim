@@ -33,6 +33,7 @@
                             <tr>
                                 <td>
                                     <a href="{% url 'user_profile' request.user.id %}">
+                                        {% include 'includes/avatar.html' with avatar_user=request.user size=24 %}
                                         {{ request.user.username }}
                                     </a>
                                 </td>

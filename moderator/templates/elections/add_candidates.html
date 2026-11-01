@@ -1,4 +1,5 @@
 {% extends 'mod_base.html' %}
+{% load humanize %}
 
 {% block title %}Add Candidates - {{ riding_result.riding.name }}{% endblock %}
 
@@ -26,7 +27,7 @@
             <div class="card-body">
                 <p><strong>Winner:</strong> 
                     {% if riding_result.winner %}
-                        {{ riding_result.winner.user.username }}
+                        {% include 'includes/avatar.html' with avatar_user=riding_result.winner.user size=20 %} {{ riding_result.winner.user.username }}
                         {% if riding_result.winning_party %}
                             ({{ riding_result.winning_party.get_name_display }})
                         {% endif %}
@@ -59,7 +60,7 @@
                         {% for candidate in existing_candidates %}
                         <tr {% if candidate.is_winner %}class="table-success"{% endif %}>
                             <td>
-                                {{ candidate.candidate.user.username }}
+                                {% include 'includes/avatar.html' with avatar_user=candidate.candidate.user size=20 %} {{ candidate.candidate.user.username }}
                                 {% if candidate.is_incumbent %}
                                     <span class="badge bg-secondary">Incumbent</span>
                                 {% endif %}

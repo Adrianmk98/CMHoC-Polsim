@@ -30,6 +30,7 @@
                     <p class="mb-0">
                         <strong>
                             <a href="{% url 'user_profile' riding_result.winner.user.id %}">
+                                {% include 'includes/avatar.html' with avatar_user=riding_result.winner.user size=28 %}
                                 {{ riding_result.winner.user.username }}
                             </a>
                         </strong>
@@ -95,6 +96,7 @@
                         <tr {% if candidate.is_winner %}class="table-success"{% endif %}>
                             <td>
                                 <a href="{% url 'user_profile' candidate.candidate.user.id %}">
+                                    {% include 'includes/avatar.html' with avatar_user=candidate.candidate.user size=24 %}
                                     {{ candidate.candidate.user.username }}
                                 </a>
                                 {% if candidate.is_incumbent %}
@@ -153,7 +155,7 @@
                         <div>
                             <strong>{{ result.election.name }}</strong>
                             {% if result.winner %}
-                                - {{ result.winner.user.username }}
+                                - {% include 'includes/avatar.html' with avatar_user=result.winner.user size=20 %} {{ result.winner.user.username }}
                                 {% if result.winning_party %}
                                     (<span style="color: {{ result.winning_party.color }};">{{ result.winning_party.name }}</span>)
                                 {% endif %}

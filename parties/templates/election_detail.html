@@ -22,7 +22,7 @@
                 {% if election.is_completed %}
                     <div class="alert alert-success">
                         <h5>✓ Election Completed</h5>
-                        <p><strong>Winner:</strong> {{ election.winner.username }}</p>
+                        <p><strong>Winner:</strong> {% include 'includes/avatar.html' with avatar_user=election.winner size=24 %} {{ election.winner.username }}</p>
                         <p class="mb-0"><strong>Total Votes:</strong> {{ election.total_votes }}</p>
                     </div>
                 {% elif election.is_open %}
@@ -46,6 +46,7 @@
                     <div class="flex-grow-1">
                         <h5>
                             <a href="{% url 'user_profile' candidate.user.id %}">
+                                {% include 'includes/avatar.html' with avatar_user=candidate.user size=28 %}
                                 {{ candidate.user.username }}
                             </a>
                         </h5>
