@@ -77,7 +77,7 @@ def press_detail(request, pk):
     press_release.increment_views()
     
     # Get approved comments
-    comments = press_release.comments.filter(is_approved=True)
+    comments = press_release.comments.filter(is_approved=True).select_related('author__profile__party')
     
     # Handle comment submission
     if request.method == 'POST' and request.user.is_authenticated:

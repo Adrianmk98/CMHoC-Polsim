@@ -7,8 +7,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from forum.models import (
-    Cabinet, CabinetPosition, Flair, ForumCategory,
-    PoliticalParty, PositionHistory, Post, Province, Riding, Thread,
+    Cabinet, CabinetPosition,
+    PoliticalParty, PositionHistory, Province, Riding,
     UserProfile,
 )
 from voting.models import Ballot, Bill, BillDebatePost, Vote
@@ -51,8 +51,6 @@ class Command(BaseCommand):
             users, user_party_codes = self.seed_users(ridings, org_parties)
             self.seed_party_leadership(org_parties, users)
             self.seed_cabinet(users, parties)
-            categories, flairs = self.seed_forum_categories()
-            self.seed_threads_and_posts(categories, flairs, users)
             bills = self.seed_bills(users)
             self.seed_votes_and_debates(bills, users)
             self.seed_press(parties, users)
@@ -157,51 +155,6 @@ class Command(BaseCommand):
                 defaults={"title": title, "order": order, "start_date": cabinet.start_date},
             )
         self.stdout.write(f"Cabinet: {cabinet.name}")
-
-    def seed_forum_categories(self):
-        categories = {}
-        for name, desc, order in [
-            ("House of Commons", "Floor debate on government business.", 1),
-            ("Committee Discussions", "Standing committee discussion threads.", 2),
-            ("General Chat", "Off-topic and general political discussion.", 3),
-        ]:
-            categories[name], _ = ForumCategory.objects.get_or_create(
-                name=name, defaults={"description": desc, "order": order}
-            )
-        flairs = {}
-        for name, color in [("Debate", "#1A4782"), ("Announcement", "#D71920"), ("Question", "#F37021")]:
-            flairs[name], _ = Flair.objects.get_or_create(name=name, defaults={"color": color})
-        self.stdout.write(f"Forum categories: {len(categories)}")
-        return categories, flairs
-
-    def seed_threads_and_posts(self, categories, flairs, users):
-        thread_specs = [
-            ("House of Commons", "Debate: Budget Implementation Act", "Debate",
-             "Let's discuss the government's latest budget implementation bill."),
-            ("House of Commons", "Question Period Highlights", "Question",
-             "What were the key exchanges in today's question period?"),
-            ("Committee Discussions", "Finance Committee: Pre-Budget Consultations", "Debate",
-             "Sharing notes from the pre-budget consultation hearings."),
-            ("General Chat", "Welcome to the 47th Parliament", "Announcement",
-             "Welcome all returning and new members!"),
-        ]
-        threads = []
-        for cat_name, title, flair_name, first_post in thread_specs:
-            thread, created = Thread.objects.get_or_create(
-                title=title, category=categories[cat_name],
-                defaults={"author": users[0], "flair": flairs[flair_name]},
-            )
-            if created:
-                Post.objects.create(thread=thread, author=users[0], content=first_post)
-                for user in random.sample(users[1:], k=min(3, len(users) - 1)):
-                    Post.objects.create(
-                        thread=thread, author=user,
-                        content=f"As the member for {user.profile.get_riding_display()}, "
-                                f"I think this deserves careful consideration.",
-                    )
-            threads.append(thread)
-        self.stdout.write(f"Threads: {len(threads)}")
-        return threads
 
     # --- voting ---
 

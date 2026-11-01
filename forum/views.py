@@ -1,25 +1,11 @@
-from datetime import timedelta
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.core.paginator import Paginator
 
-from .models import Cabinet, ForumCategory, PositionHistory, Thread, Post, UserProfile
-
-
-def _active_score_session():
-    try:
-        from scores.models import ParliamentSession
-        return ParliamentSession.objects.filter(is_active=True).first()
-    except Exception:
-        return None
-from .forms import ThreadForm, PostForm
-from django.shortcuts import render
+from .models import Cabinet, PositionHistory, UserProfile
 from django.contrib.auth.models import User
-from .models import ForumCategory, Thread, Post, Cabinet
 from voting.models import Bill, Vote
-from django.db.models import Count
 from django.contrib.auth import login, authenticate, logout as auth_logout
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.shortcuts import render, redirect
@@ -27,13 +13,10 @@ from django.contrib import messages
 
 def index(request):
     """
-    New homepage focused on press releases and upcoming events
-    This replaces the old forum_index as the main homepage
+    Homepage focused on press releases and upcoming events
     """
     # Statistics
     stats = {
-        'total_threads': Thread.objects.count(),
-        'total_posts': Post.objects.count(),
         'total_users': User.objects.count(),
         'active_bills': Vote.objects.filter(is_active=True).count(),
         'total_parties': 0,
@@ -96,11 +79,6 @@ def index(request):
     except:
         pass
     
-    # Recent forum threads
-    recent_threads = Thread.objects.select_related(
-        'author', 'category'
-    ).order_by('-created_at')[:5]
-    
     context = {
         'stats': stats,
         'latest_press': latest_press,
@@ -108,153 +86,9 @@ def index(request):
         'active_votes': active_votes,
         'upcoming_elections': upcoming_elections,
         'party_elections': party_elections,
-        'recent_threads': recent_threads,
     }
-    
+
     return render(request, 'index.html', context)
-
-
-def forum_categories(request):
-    """
-    Separate page showing all forum categories (the old forum_index content)
-    """
-    # Get categories with counts and latest thread
-    categories = ForumCategory.objects.annotate(
-        thread_count=Count('threads'),
-        post_count=Count('threads__posts')
-    ).prefetch_related('threads__author')
-    
-    # Add latest thread to each category
-    for category in categories:
-        category.latest_thread = category.threads.order_by('-created_at').first()
-    
-    # Statistics
-    total_threads = Thread.objects.count()
-    total_posts = Post.objects.count()
-    active_members = User.objects.filter(
-        is_active=True,
-        last_login__gte=timezone.now() - timedelta(days=30)
-    ).count()
-    
-    # Recent threads across all categories
-    recent_threads = Thread.objects.select_related(
-        'author', 'category'
-    ).annotate(
-        post_count=Count('posts')
-    ).order_by('-created_at')[:10]
-    
-    context = {
-        'categories': categories,
-        'total_threads': total_threads,
-        'total_posts': total_posts,
-        'active_members': active_members,
-        'recent_threads': recent_threads,
-    }
-    
-    return render(request, 'forum_categories.html', context)
-
-
-def forum_index(request):
-    """Backward compatibility - redirects to forum categories"""
-    return forum_categories(request)
-
-def category_detail(request, category_id):
-    """Display threads in a category with flair filtering"""
-    category = get_object_or_404(ForumCategory, pk=category_id)
-    threads = category.threads.all()
-    
-    # Flair filtering
-    flair_filter = request.GET.get('flair', '')
-    if flair_filter:
-        threads = threads.filter(flair__id=flair_filter)
-    
-    # Get available flairs for this category
-    from .models import Flair
-    available_flairs = Flair.objects.filter(category=category)
-    
-    paginator = Paginator(threads, 20)  # 20 threads per page
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    context = {
-        'category': category,
-        'page_obj': page_obj,
-        'available_flairs': available_flairs,
-        'flair_filter': flair_filter,
-    }
-    return render(request, 'category_detail.html', context)
-
-
-def thread_detail(request, thread_id):
-    """Display posts in a thread"""
-    thread = get_object_or_404(Thread, pk=thread_id)
-    
-    # Increment view count
-    thread.views += 1
-    thread.save()
-    
-    posts = thread.posts.all()
-    paginator = Paginator(posts, 15)  # 15 posts per page
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    # Reply form
-    if request.method == 'POST' and request.user.is_authenticated:
-        form = PostForm(request.POST)
-        if form.is_valid():
-            post = form.save(commit=False)
-            post.thread = thread
-            post.author = request.user
-            post.save()
-            messages.success(request, 'Reply posted successfully!')
-            return redirect('thread_detail', thread_id=thread.id)
-    else:
-        form = PostForm()
-    
-    context = {
-        'thread': thread,
-        'posts': posts,
-        'page_obj': page_obj,
-        'form': form,
-        'active_score_session': _active_score_session(),
-    }
-    return render(request, 'thread_detail.html', context)
-
-
-@login_required
-def create_thread(request, category_id):
-    """Create a new thread"""
-    category = get_object_or_404(ForumCategory, pk=category_id)
-    
-    if request.method == 'POST':
-        thread_form = ThreadForm(request.POST)
-        post_form = PostForm(request.POST)
-        
-        if thread_form.is_valid() and post_form.is_valid():
-            # Create thread
-            thread = thread_form.save(commit=False)
-            thread.category = category
-            thread.author = request.user
-            thread.save()
-            
-            # Create first post
-            post = post_form.save(commit=False)
-            post.thread = thread
-            post.author = request.user
-            post.save()
-            
-            messages.success(request, 'Thread created successfully!')
-            return redirect('thread_detail', thread_id=thread.id)
-    else:
-        thread_form = ThreadForm()
-        post_form = PostForm()
-    
-    context = {
-        'category': category,
-        'thread_form': thread_form,
-        'post_form': post_form,
-    }
-    return render(request, 'create_thread.html', context)
 
 
 @login_required
@@ -272,8 +106,6 @@ def user_profile(request, userid):
     history, created = PlayerHistory.objects.get_or_create(user=user)
     history.update_stats()  # Refresh stats
 
-    recent_threads = user.threads.all()[:5]
-    recent_posts = user.posts.all()[:10]
     recent_votes = Ballot.objects.filter(voter=user).order_by('-cast_at')[:10]
 
     voted_session_ids = Ballot.objects.filter(voter=user).values_list('vote_session_id', flat=True)
@@ -285,43 +117,10 @@ def user_profile(request, userid):
         'profile_user': user,
         'profile': profile,
         'history': history,
-        'recent_threads': recent_threads,
-        'recent_posts': recent_posts,
         'recent_votes': recent_votes,
         'recent_missed_votes': recent_missed_votes,
     }
     return render(request, 'user_profile.html', context)
-
-
-def search(request):
-    """Search threads and posts by keywords"""
-    query = request.GET.get('q', '')
-    search_type = request.GET.get('type', 'all')  # all, threads, posts
-    flair_filter = request.GET.get('flair', '')
-    
-    threads = []
-    posts = []
-    
-    if query:
-        if search_type in ['all', 'threads']:
-            threads = Thread.search(query)
-            if flair_filter:
-                threads = threads.filter(flair__id=flair_filter)
-        if search_type in ['all', 'posts']:
-            posts = Post.search(query)
-    
-    from .models import Flair
-    available_flairs = Flair.objects.all()
-    
-    context = {
-        'query': query,
-        'search_type': search_type,
-        'flair_filter': flair_filter,
-        'threads': threads[:20],
-        'posts': posts[:50],
-        'available_flairs': available_flairs,
-    }
-    return render(request, 'search_results.html', context)
 
 
 def riding_list(request):

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import PoliticalParty, Province, UserProfile, ForumCategory, Thread, Post, Flair, PositionHistory, PartyHistory, Riding, Cabinet, CabinetPosition
+from .models import PoliticalParty, Province, UserProfile, PositionHistory, PartyHistory, Riding, Cabinet, CabinetPosition
 
 @admin.register(Province)
 class ProvinceAdmin(admin.ModelAdmin):
@@ -32,13 +32,6 @@ class RidingAdmin(admin.ModelAdmin):
             return f"{mp.username}"
         return "-"
     current_mp.short_description = 'Current MP'
-
-
-@admin.register(Flair)
-class FlairAdmin(admin.ModelAdmin):
-    list_display = ['name', 'color', 'category']
-    list_filter = ['category']
-    search_fields = ['name']
 
 
 @admin.register(PoliticalParty)
@@ -136,26 +129,3 @@ class CabinetPositionAdmin(admin.ModelAdmin):
         return obj.is_current()
     is_current.boolean = True
     is_current.short_description = 'Current'
-
-
-@admin.register(ForumCategory)
-class ForumCategoryAdmin(admin.ModelAdmin):
-    list_display = ['name', 'order', 'created_at']
-    list_editable = ['order']
-    ordering = ['order']
-
-
-@admin.register(Thread)
-class ThreadAdmin(admin.ModelAdmin):
-    list_display = ['title', 'category', 'flair', 'author', 'created_at', 'is_pinned', 'is_locked', 'views']
-    list_filter = ['category', 'flair', 'is_pinned', 'is_locked', 'created_at']
-    search_fields = ['title', 'author__username']
-    date_hierarchy = 'created_at'
-
-
-@admin.register(Post)
-class PostAdmin(admin.ModelAdmin):
-    list_display = ['thread', 'author', 'created_at', 'is_edited']
-    list_filter = ['created_at', 'is_edited']
-    search_fields = ['content', 'author__username', 'thread__title']
-    date_hierarchy = 'created_at'

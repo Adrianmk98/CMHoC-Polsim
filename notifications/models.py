@@ -153,21 +153,6 @@ class Notification(models.Model):
             related_bill_id=bill.id
         )
     
-    @classmethod
-    def notify_thread_reply(cls, thread, reply_author):
-        """Notify thread author of reply"""
-        if thread.author != reply_author:  # Don't notify of own replies
-            return cls.create_notification(
-                user=thread.author,
-                notification_type='THREAD_REPLY',
-                title='💬 New Reply',
-                message=f'{reply_author.username} replied to your thread "{thread.title}"',
-                link=f'/thread/{thread.id}/',
-                related_thread_id=thread.id,
-                related_user_id=reply_author.id
-            )
-        return None
-
 
 class NotificationPreference(models.Model):
     """User notification preferences"""
