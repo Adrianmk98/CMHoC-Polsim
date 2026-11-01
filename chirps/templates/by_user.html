@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}@{{ author.username }}'s Chirps - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 offset-lg-2">
+        <h2 class="mb-4">🐦 @{{ author.username }}</h2>
+
+        {% for chirp in chirps %}
+        <div class="card mb-2">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between">
+                    <span class="fw-bold">@{{ chirp.author.username }}</span>
+                    <small class="text-muted">{{ chirp.created_at|date:"M d, Y H:i" }}</small>
+                </div>
+                <p class="mb-1">{{ chirp.content }}</p>
+                {% if user == chirp.author or user.is_staff %}
+                <form method="post" action="{% url 'chirps:delete' chirp.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-link btn-sm text-danger p-0">Delete</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-muted">No chirps yet.</p>
+        {% endfor %}
+
+        {% if chirps.has_other_pages %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if chirps.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ chirps.previous_page_number }}">Previous</a></li>
+                {% endif %}
+                <li class="page-item disabled"><span class="page-link">Page {{ chirps.number }} of {{ chirps.paginator.num_pages }}</span></li>
+                {% if chirps.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ chirps.next_page_number }}">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

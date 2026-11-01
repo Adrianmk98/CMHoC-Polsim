@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
-from .models import PartyMembership, PartyRole
+from .models import Party, PartyMembership, PartyRole
 
 
 @receiver(post_save, sender=PartyMembership)
@@ -63,3 +63,59 @@ def sync_party_leadership(sender, instance, **kwargs):
     elif instance.role == 'PRESS' and instance.is_active:
         instance.party.press_secretary = instance.user
         instance.party.save(update_fields=['press_secretary'])
+
+
+def _party_npc_persona(party):
+    """Seed text for the party HQ NPC, built from the party's current platform."""
+    platform = party.platform.strip() if party.platform else 'This party has not published a platform yet.'
+    return (
+        f"You are the official voice of the {party.name} ({party.abbreviation}), "
+        f"a {party.get_ideology_display()} party. Speak on behalf of the party and stay "
+        f"strictly consistent with its platform:\n\n{platform}"
+    )
+
+
+def _party_npc_username(party):
+    from django.contrib.auth.models import User
+
+    base = f"npc_{party.abbreviation.lower()}_hq"
+    username = base
+    counter = 1
+    while User.objects.filter(username=username).exists():
+        username = f"{base}{counter}"
+        counter += 1
+    return username
+
+
+@receiver(post_save, sender=Party)
+def sync_party_npc_profile(sender, instance, created, **kwargs):
+    """Give every party an NPC "HQ" account whose persona tracks the party's platform:
+    created alongside the party, and refreshed whenever the platform text changes."""
+    from forum.models import UserProfile
+    from npcs.models import NPCProfile
+
+    party = instance
+    persona = _party_npc_persona(party)
+
+    if created:
+        from django.contrib.auth.models import User
+
+        user = User.objects.create(username=_party_npc_username(party), first_name=party.name)
+        user.set_unusable_password()
+        user.save()
+
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.party = party
+        profile.role = 'Party Headquarters'
+        profile.save(update_fields=['party', 'role'])
+
+        NPCProfile.objects.create(
+            user_profile=profile,
+            party=party,
+            persona=persona,
+        )
+    else:
+        npc_profile = getattr(party, 'npc_profile', None)
+        if npc_profile is not None and npc_profile.persona != persona:
+            npc_profile.persona = persona
+            npc_profile.save(update_fields=['persona'])

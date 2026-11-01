@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'parties',
     'scores',
     'npcs',
+    'chirps',
     'django.contrib.humanize',
 ]
 

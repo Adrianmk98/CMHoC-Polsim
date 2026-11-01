@@ -9,6 +9,10 @@ class NPCProfile(models.Model):
     """Behavior/persona config for an AI-driven NPC character."""
 
     user_profile = models.OneToOneField(UserProfile, on_delete=models.CASCADE, related_name='npc_profile')
+    party = models.OneToOneField(
+        'parties.Party', on_delete=models.CASCADE, null=True, blank=True, related_name='npc_profile',
+        help_text='Set when this NPC is a party HQ account, auto-managed from the party\'s platform'
+    )
     persona = models.TextField(help_text='Voice, ideology, and tone used to seed the system prompt')
     is_active = models.BooleanField(default=True, help_text='Kill switch for this NPC')
     reply_chance = models.FloatField(default=0.4, help_text='Probability (0-1) this NPC reacts to an eligible trigger')
