@@ -2,12 +2,15 @@ from django import forms
 from .models import Party, LeadershipElection, ConfidenceVote, LeadershipCandidate, JoinRequest
 
 
+PARTY_CONSTITUTION_PDF_MAX_SIZE = 20 * 1024 * 1024
+
+
 class PartyForm(forms.ModelForm):
     """Form for creating a new party"""
-    
+
     class Meta:
         model = Party
-        fields = ['name', 'abbreviation', 'political_party', 'color', 'ideology', 'platform']
+        fields = ['name', 'abbreviation', 'political_party', 'color', 'ideology', 'platform', 'constitution_pdf']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -32,7 +35,17 @@ class PartyForm(forms.ModelForm):
                 'rows': 6,
                 'placeholder': 'Describe your party\'s platform and policies...'
             }),
+            'constitution_pdf': forms.FileInput(attrs={'class': 'form-control', 'accept': '.pdf'}),
         }
+
+    def clean_constitution_pdf(self):
+        pdf = self.cleaned_data.get('constitution_pdf')
+        if pdf and hasattr(pdf, 'content_type'):
+            if pdf.content_type != 'application/pdf':
+                raise forms.ValidationError('File must be a PDF.')
+            if pdf.size > PARTY_CONSTITUTION_PDF_MAX_SIZE:
+                raise forms.ValidationError('PDF must be smaller than 20MB.')
+        return pdf
 
 
 class LeadershipElectionForm(forms.ModelForm):

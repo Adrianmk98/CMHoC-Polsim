@@ -123,6 +123,26 @@ def user_profile(request, userid):
     return render(request, 'user_profile.html', context)
 
 
+@login_required
+def edit_profile(request):
+    """Edit your own avatar"""
+    from .forms import ProfileEditForm
+
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        form = ProfileEditForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile picture updated!')
+            return redirect('user_profile', userid=request.user.id)
+    else:
+        form = ProfileEditForm(instance=profile)
+
+    context = {'form': form, 'profile': profile}
+    return render(request, 'edit_profile.html', context)
+
+
 def riding_list(request):
     """Display all ridings grouped by province"""
     from .models import Riding, Province

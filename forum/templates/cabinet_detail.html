@@ -32,6 +32,7 @@
                     <div class="col-md-6">
                         <h5>Prime Minister</h5>
                         <a href="{% url 'user_profile' cabinet.prime_minister.id %}">
+                            {% include 'includes/avatar.html' with avatar_user=cabinet.prime_minister size=24 %}
                             <strong>{{ cabinet.prime_minister.username }}</strong>
                         </a>
                         {% if cabinet.prime_minister.profile.party %}
@@ -87,6 +88,7 @@
                             <div class="col-md-8">
                                 <h6 class="mb-1">{{ position.title }}</h6>
                                 <a href="{% url 'user_profile' position.user_profile.user.id %}">
+                                    {% include 'includes/avatar.html' with avatar_user=position.user_profile.user size=24 %}
                                     <strong>{{ position.user_profile.user.username }}</strong>
                                 </a>
                                 {% if position.user_profile.party %}

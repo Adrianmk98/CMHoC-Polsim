@@ -2,10 +2,13 @@ from django import forms
 from .models import Bill, Vote, Ballot
 
 
+BILL_PDF_MAX_SIZE = 20 * 1024 * 1024
+
+
 class BillForm(forms.ModelForm):
     class Meta:
         model = Bill
-        fields = ['bill_number', 'title', 'short_title', 'chamber', 'status', 'summary', 'full_text']
+        fields = ['bill_number', 'title', 'short_title', 'chamber', 'status', 'summary', 'full_text', 'pdf']
         widgets = {
             'bill_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., C-123 or S-45'}),
             'title': forms.TextInput(attrs={'class': 'form-control'}),
@@ -14,7 +17,17 @@ class BillForm(forms.ModelForm):
             'status': forms.Select(attrs={'class': 'form-select'}),
             'summary': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'full_text': forms.Textarea(attrs={'class': 'form-control', 'rows': 10}),
+            'pdf': forms.FileInput(attrs={'class': 'form-control', 'accept': '.pdf'}),
         }
+
+    def clean_pdf(self):
+        pdf = self.cleaned_data.get('pdf')
+        if pdf and hasattr(pdf, 'content_type'):
+            if pdf.content_type != 'application/pdf':
+                raise forms.ValidationError('File must be a PDF.')
+            if pdf.size > BILL_PDF_MAX_SIZE:
+                raise forms.ValidationError('PDF must be smaller than 20MB.')
+        return pdf
 
 
 class VoteForm(forms.ModelForm):

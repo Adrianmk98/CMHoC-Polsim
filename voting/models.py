@@ -63,7 +63,8 @@ class Bill(models.Model):
     
     summary = models.TextField()
     full_text = models.TextField()
-    
+    pdf = models.FileField(upload_to='bills/', blank=True, null=True, help_text='Bill text as a PDF')
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

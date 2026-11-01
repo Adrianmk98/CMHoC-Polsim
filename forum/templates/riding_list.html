@@ -56,6 +56,7 @@
                 </div>
                 <div class="text-end">
                     {% if riding.current_mp %}
+                        {% include 'includes/avatar.html' with avatar_user=riding.current_mp size=20 %}
                         <span class="badge bg-success">MP: {{ riding.current_mp.username }}</span>
                         {% if riding.current_mp.profile.party %}
                             <span class="party-badge" style="background-color: {{ riding.current_mp.profile.party.color }};">

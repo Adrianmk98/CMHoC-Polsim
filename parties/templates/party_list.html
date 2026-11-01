@@ -26,8 +26,9 @@
             </div>
             <div class="card-body">
                 <p class="mb-2"><strong>Ideology:</strong> {{ party.get_ideology_display }}</p>
-                <p class="mb-2"><strong>Leader:</strong> 
+                <p class="mb-2"><strong>Leader:</strong>
                     {% if party.leader %}
+                        {% include 'includes/avatar.html' with avatar_user=party.leader size=20 %}
                         {{ party.leader.username }}
                     {% else %}
                         <span class="text-muted">No leader</span>

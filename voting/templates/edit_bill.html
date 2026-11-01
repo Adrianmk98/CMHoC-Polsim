@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Bill{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'voting:bill_list' %}">Bills</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'voting:bill_detail' bill.id %}">{{ bill.bill_number }}</a></li>
+                <li class="breadcrumb-item active">Edit</li>
+            </ol>
+        </nav>
+
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3>Edit Bill {{ bill.bill_number }}</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.bill_number.id_for_label }}" class="form-label">Bill Number *</label>
+                            {{ form.bill_number }}
+                            {% if form.bill_number.errors %}
+                                <div class="text-danger">{{ form.bill_number.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.chamber.id_for_label }}" class="form-label">Chamber *</label>
+                            {{ form.chamber }}
+                            {% if form.chamber.errors %}
+                                <div class="text-danger">{{ form.chamber.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.title.id_for_label }}" class="form-label">Full Title *</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                            <div class="text-danger">{{ form.title.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.short_title.id_for_label }}" class="form-label">Short Title</label>
+                        {{ form.short_title }}
+                        {% if form.short_title.errors %}
+                            <div class="text-danger">{{ form.short_title.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.status.id_for_label }}" class="form-label">Status *</label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <div class="text-danger">{{ form.status.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.summary.id_for_label }}" class="form-label">Summary *</label>
+                        {{ form.summary }}
+                        {% if form.summary.errors %}
+                            <div class="text-danger">{{ form.summary.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.full_text.id_for_label }}" class="form-label">Full Bill Text *</label>
+                        {{ form.full_text }}
+                        {% if form.full_text.errors %}
+                            <div class="text-danger">{{ form.full_text.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.pdf.id_for_label }}" class="form-label">Bill PDF</label>
+                        {% if bill.pdf %}
+                            <div class="mb-2"><a href="{{ bill.pdf.url }}" target="_blank">Current PDF</a></div>
+                        {% endif %}
+                        {{ form.pdf }}
+                        <small class="form-text text-muted">Optional: upload a PDF to replace the current one</small>
+                        {% if form.pdf.errors %}
+                            <div class="text-danger">{{ form.pdf.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg flex-grow-1">Save Changes</button>
+                        <a href="{% url 'voting:bill_detail' bill.id %}" class="btn btn-secondary btn-lg">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

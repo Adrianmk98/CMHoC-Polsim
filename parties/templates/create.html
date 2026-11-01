@@ -10,9 +10,9 @@
                 <h3>🎭 Create New Political Party</h3>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Party Name *</label>
                         {{ form.name }}
@@ -53,6 +53,15 @@
                         <small class="form-text text-muted">Describe your party's policies and vision</small>
                         {% if form.platform.errors %}
                             <div class="text-danger">{{ form.platform.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Party Constitution PDF</label>
+                        {{ form.constitution_pdf }}
+                        <small class="form-text text-muted">Optional: upload a PDF of the party constitution, viewable in-browser on the party's page</small>
+                        {% if form.constitution_pdf.errors %}
+                            <div class="text-danger">{{ form.constitution_pdf.errors }}</div>
                         {% endif %}
                     </div>
 
