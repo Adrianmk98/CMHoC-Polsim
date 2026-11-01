@@ -28,7 +28,7 @@ class PartyAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'abbreviation', 'color', 'logo')
+            'fields': ('name', 'abbreviation', 'political_party', 'color', 'logo')
         }),
         ('Political Info', {
             'fields': ('ideology', 'platform')

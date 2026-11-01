@@ -69,9 +69,9 @@ def press_list(request):
     return render(request, 'list.html', context)
 
 
-def press_detail(request, slug):
+def press_detail(request, pk):
     """View a single press release"""
-    press_release = get_object_or_404(PressRelease, slug=slug, is_published=True)
+    press_release = get_object_or_404(PressRelease, pk=pk, is_published=True)
     
     # Increment view count
     press_release.increment_views()
@@ -88,7 +88,7 @@ def press_detail(request, slug):
             comment.author = request.user
             comment.save()
             messages.success(request, 'Your comment has been posted!')
-            return redirect('press:detail', slug=slug)
+            return redirect('press:detail', pk=pk)
     else:
         comment_form = PressCommentForm()
     
@@ -118,20 +118,17 @@ def press_create(request):
             press_release.author = request.user
             
             # Set party from user profile if available (PressRelease.party is the fixed
-            # real-world party enum, not the player-created party the user belongs to)
+            # real-world party enum, linked via Party.political_party)
             try:
                 profile_party = request.user.profile.party
                 if profile_party:
-                    from forum.models import PoliticalParty
-                    press_release.party = PoliticalParty.objects.filter(
-                        name__iexact=profile_party.abbreviation
-                    ).first()
+                    press_release.party = profile_party.political_party
             except Exception:
                 pass
             
             press_release.save()
             messages.success(request, 'Press release created successfully!')
-            return redirect('press:detail', slug=press_release.slug)
+            return redirect('press:detail', pk=press_release.pk)
     else:
         form = PressReleaseForm()
     
@@ -143,21 +140,21 @@ def press_create(request):
 
 
 @login_required
-def press_edit(request, slug):
+def press_edit(request, pk):
     """Edit an existing press release"""
-    press_release = get_object_or_404(PressRelease, slug=slug)
-    
+    press_release = get_object_or_404(PressRelease, pk=pk)
+
     # Check permission
     if press_release.author != request.user and not request.user.is_staff:
         messages.error(request, "You don't have permission to edit this press release.")
-        return redirect('press:detail', slug=slug)
-    
+        return redirect('press:detail', pk=pk)
+
     if request.method == 'POST':
         form = PressReleaseForm(request.POST, instance=press_release)
         if form.is_valid():
             form.save()
             messages.success(request, 'Press release updated successfully!')
-            return redirect('press:detail', slug=press_release.slug)
+            return redirect('press:detail', pk=press_release.pk)
     else:
         form = PressReleaseForm(instance=press_release)
     
@@ -170,14 +167,14 @@ def press_edit(request, slug):
 
 
 @login_required
-def press_delete(request, slug):
+def press_delete(request, pk):
     """Delete a press release"""
-    press_release = get_object_or_404(PressRelease, slug=slug)
-    
+    press_release = get_object_or_404(PressRelease, pk=pk)
+
     # Check permission
     if press_release.author != request.user and not request.user.is_staff:
         messages.error(request, "You don't have permission to delete this press release.")
-        return redirect('press:detail', slug=slug)
+        return redirect('press:detail', pk=pk)
     
     if request.method == 'POST':
         press_release.delete()

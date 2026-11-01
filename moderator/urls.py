@@ -29,6 +29,15 @@ urlpatterns = [
     # Bill management
     path('bills/', views.bill_dashboard, name='bill_dashboard'),
 
+    # Party management
+    path('parties/', views.party_dashboard, name='party_dashboard'),
+    path('parties/<int:party_id>/add-member/', views.mod_add_member, name='mod_add_member'),
+    path('parties/member/<int:membership_id>/remove/', views.mod_remove_member, name='mod_remove_member'),
+    path('parties/<int:party_id>/assign-role/', views.mod_assign_role, name='mod_assign_role'),
+    path('parties/role/<int:role_id>/remove/', views.mod_remove_role, name='mod_remove_role'),
+    path('parties/join-requests/<int:request_id>/approve/', views.mod_approve_join_request, name='mod_approve_join_request'),
+    path('parties/join-requests/<int:request_id>/reject/', views.mod_reject_join_request, name='mod_reject_join_request'),
+
     # Score management (moderator-only polling calculator)
     path('scores/', views.scores_dashboard, name='scores_dashboard'),
     path('scores/session/create/', views.session_create, name='session_create'),

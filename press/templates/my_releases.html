@@ -32,7 +32,7 @@
                     {% for pr in press_releases %}
                     <tr>
                         <td>
-                            <a href="{% url 'press:detail' pr.slug %}">{{ pr.title }}</a>
+                            <a href="{% url 'press:detail' pr.pk %}">{{ pr.title }}</a>
                         </td>
                         <td>
                             <span class="badge bg-secondary">{{ pr.get_category_display }}</span>
@@ -51,9 +51,9 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <a href="{% url 'press:detail' pr.slug %}" class="btn btn-outline-primary">View</a>
-                                <a href="{% url 'press:edit' pr.slug %}" class="btn btn-outline-secondary">Edit</a>
-                                <a href="{% url 'press:delete' pr.slug %}" class="btn btn-outline-danger">Delete</a>
+                                <a href="{% url 'press:detail' pr.pk %}" class="btn btn-outline-primary">View</a>
+                                <a href="{% url 'press:edit' pr.pk %}" class="btn btn-outline-secondary">Edit</a>
+                                <a href="{% url 'press:delete' pr.pk %}" class="btn btn-outline-danger">Delete</a>
                             </div>
                         </td>
                     </tr>

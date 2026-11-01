@@ -7,7 +7,7 @@ class PartyForm(forms.ModelForm):
     
     class Meta:
         model = Party
-        fields = ['name', 'abbreviation', 'color', 'ideology', 'platform']
+        fields = ['name', 'abbreviation', 'political_party', 'color', 'ideology', 'platform']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -16,6 +16,9 @@ class PartyForm(forms.ModelForm):
             'abbreviation': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Abbreviation (e.g., LPC, CPC)'
+            }),
+            'political_party': forms.Select(attrs={
+                'class': 'form-select'
             }),
             'color': forms.TextInput(attrs={
                 'class': 'form-control',

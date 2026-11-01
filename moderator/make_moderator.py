@@ -12,6 +12,7 @@ class Command(BaseCommand):
         parser.add_argument('--cabinet', action='store_true', help='Grant cabinet management permission')
         parser.add_argument('--bills', action='store_true', help='Grant bill management permission')
         parser.add_argument('--users', action='store_true', help='Grant user management permission')
+        parser.add_argument('--parties', action='store_true', help='Grant party management permission')
         parser.add_argument('--all', action='store_true', help='Grant all permissions')
 
     def handle(self, *args, **options):
@@ -38,6 +39,7 @@ class Command(BaseCommand):
             profile.can_manage_cabinet = True
             profile.can_manage_bills = True
             profile.can_manage_users = True
+            profile.can_manage_parties = True
             self.stdout.write(self.style.SUCCESS('Granted ALL permissions'))
         else:
             if options['elections']:
@@ -52,12 +54,16 @@ class Command(BaseCommand):
             if options['users']:
                 profile.can_manage_users = True
                 self.stdout.write(self.style.SUCCESS('Granted user management permission'))
-        
+            if options['parties']:
+                profile.can_manage_parties = True
+                self.stdout.write(self.style.SUCCESS('Granted party management permission'))
+
         profile.save()
-        
+
         self.stdout.write(self.style.SUCCESS(f'\n✅ {username} is now a moderator!'))
         self.stdout.write(f'Permissions:')
         self.stdout.write(f'  - Elections: {profile.can_manage_elections}')
         self.stdout.write(f'  - Cabinet: {profile.can_manage_cabinet}')
         self.stdout.write(f'  - Bills: {profile.can_manage_bills}')
         self.stdout.write(f'  - Users: {profile.can_manage_users}')
+        self.stdout.write(f'  - Parties: {profile.can_manage_parties}')

@@ -24,7 +24,7 @@
         <div class="card">
             <div class="card-body">
                 <h4 class="card-title">
-                    <a href="{% url 'press:detail' pr.slug %}">{{ pr.title }}</a>
+                    <a href="{% url 'press:detail' pr.pk %}">{{ pr.title }}</a>
                 </h4>
                 <p class="text-muted">
                     <small>
@@ -35,7 +35,7 @@
                     </small>
                 </p>
                 <p class="card-text">{{ pr.excerpt }}</p>
-                <a href="{% url 'press:detail' pr.slug %}" class="btn btn-sm btn-primary">Read Full Release</a>
+                <a href="{% url 'press:detail' pr.pk %}" class="btn btn-sm btn-primary">Read Full Release</a>
             </div>
         </div>
     </div>

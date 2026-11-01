@@ -71,6 +71,25 @@
         </div>
     </div>
     {% endif %}
+
+    {% if permissions.can_manage_parties %}
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-info">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">🎗️ Parties</h5>
+            </div>
+            <div class="card-body">
+                {% if total_parties %}
+                <p><strong>Total Parties:</strong> {{ total_parties }}</p>
+                <p><strong>Pending Join Requests:</strong> {{ pending_join_requests }}</p>
+                {% endif %}
+                <a href="{% url 'moderator:party_dashboard' %}" class="btn btn-info w-100">
+                    Manage Parties
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Recent Elections (if permission) -->
@@ -140,6 +159,7 @@
                     <li>{% if permissions.can_manage_cabinet %}✅{% else %}❌{% endif %} Manage Cabinet</li>
                     <li>{% if permissions.can_manage_bills %}✅{% else %}❌{% endif %} Manage Bills</li>
                     <li>{% if permissions.can_manage_users %}✅{% else %}❌{% endif %} Manage Users</li>
+                    <li>{% if permissions.can_manage_parties %}✅{% else %}❌{% endif %} Manage Parties</li>
                 </ul>
             </div>
         </div>

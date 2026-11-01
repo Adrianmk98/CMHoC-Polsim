@@ -1,12 +1,18 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import JsonResponse
-from django.db.models import Sum
-from .permissions import can_manage_elections, can_manage_cabinet, can_manage_bills, can_manage_scores, get_moderator_permissions
+from django.db.models import Sum, Prefetch
+from django.utils import timezone
+from .permissions import (
+    can_manage_elections, can_manage_cabinet, can_manage_bills, can_manage_scores,
+    can_manage_parties, get_moderator_permissions,
+)
 from elections.models import Election, RidingElectionResult, CandidateResult
 from forum.models import Riding, UserProfile, PoliticalParty, Cabinet, CabinetPosition, PositionHistory
 from voting.models import Bill, Vote
+from parties.models import Party, PartyMembership, PartyRole, JoinRequest
 
 
 @login_required
@@ -39,7 +45,12 @@ def moderator_dashboard(request):
     if perms['can_manage_bills']:
         context['total_bills'] = Bill.objects.count()
         context['active_votes'] = Vote.objects.filter(is_active=True).count()
-    
+
+    # Party stats
+    if perms['can_manage_parties']:
+        context['total_parties'] = Party.objects.count()
+        context['pending_join_requests'] = JoinRequest.objects.filter(status='PENDING').count()
+
     return render(request, 'dashboard.html', context)
 
 
@@ -756,3 +767,183 @@ def delete_score_entry(request, entry_id):
     entry.delete()
     messages.success(request, "Score entry deleted.")
     return redirect(f"{request.path.rsplit('/delete/', 1)[0].rsplit('/', 2)[0]}/player/{user_id}/?session={session_id}")
+
+# ============================================================================
+# PARTY MANAGEMENT
+# ============================================================================
+
+@login_required
+def party_dashboard(request):
+    """Party-specific moderator dashboard: members, roles, join requests"""
+    if not can_manage_parties(request.user):
+        messages.error(request, "You don't have permission to manage parties.")
+        return redirect('moderator:dashboard')
+
+    parties = Party.objects.all().select_related('leader').prefetch_related(
+        Prefetch(
+            'members',
+            queryset=PartyMembership.objects.filter(is_active=True).select_related('user').order_by('user__username'),
+            to_attr='active_members',
+        ),
+        Prefetch(
+            'roles',
+            queryset=PartyRole.objects.filter(is_active=True).select_related('user'),
+            to_attr='active_roles',
+        ),
+        Prefetch(
+            'join_requests',
+            queryset=JoinRequest.objects.filter(status='PENDING').select_related('user').order_by('requested_at'),
+            to_attr='pending_requests',
+        ),
+    ).order_by('name')
+
+    members_with_party = PartyMembership.objects.filter(is_active=True).values_list('user_id', flat=True)
+    unaffiliated_users = User.objects.exclude(id__in=members_with_party).order_by('username')
+
+    context = {
+        'parties': parties,
+        'unaffiliated_users': unaffiliated_users,
+        'role_choices': PartyRole.ROLE_CHOICES,
+    }
+    return render(request, 'parties/dashboard.html', context)
+
+
+@login_required
+def mod_add_member(request, party_id):
+    """Directly add a user to a party, bypassing the join-request flow"""
+    if not can_manage_parties(request.user):
+        messages.error(request, "You don't have permission to manage parties.")
+        return redirect('moderator:dashboard')
+
+    party = get_object_or_404(Party, pk=party_id)
+
+    if request.method == 'POST':
+        user = get_object_or_404(User, pk=request.POST.get('user_id'))
+
+        if PartyMembership.objects.filter(user=user, is_active=True).exclude(party=party).exists():
+            messages.error(request, f'{user.username} is already a member of another party. Remove them from it first.')
+        else:
+            PartyMembership.objects.update_or_create(
+                user=user, party=party,
+                defaults={'is_active': True, 'left_at': None},
+            )
+            party.update_member_count()
+            messages.success(request, f'{user.username} has been added to {party.name}.')
+
+    return redirect('moderator:party_dashboard')
+
+
+@login_required
+def mod_remove_member(request, membership_id):
+    """Remove a member from a party"""
+    if not can_manage_parties(request.user):
+        messages.error(request, "You don't have permission to manage parties.")
+        return redirect('moderator:dashboard')
+
+    membership = get_object_or_404(PartyMembership, pk=membership_id, is_active=True)
+
+    if request.method == 'POST':
+        party = membership.party
+        user = membership.user
+        membership.leave_party()
+
+        if party.leader_id == user.id:
+            party.leader = None
+            party.save(update_fields=['leader'])
+
+        messages.success(request, f'{user.username} has been removed from {party.name}.')
+
+    return redirect('moderator:party_dashboard')
+
+
+@login_required
+def mod_assign_role(request, party_id):
+    """Assign (or reassign) a leadership/officer role within a party"""
+    if not can_manage_parties(request.user):
+        messages.error(request, "You don't have permission to manage parties.")
+        return redirect('moderator:dashboard')
+
+    party = get_object_or_404(Party, pk=party_id)
+
+    if request.method == 'POST':
+        user = get_object_or_404(User, pk=request.POST.get('user_id'))
+        role = request.POST.get('role')
+
+        if role not in dict(PartyRole.ROLE_CHOICES):
+            messages.error(request, 'Invalid role.')
+            return redirect('moderator:party_dashboard')
+
+        if not PartyMembership.objects.filter(user=user, party=party, is_active=True).exists():
+            messages.error(request, f'{user.username} must be an active member of {party.name} first.')
+            return redirect('moderator:party_dashboard')
+
+        PartyRole.objects.update_or_create(
+            party=party, user=user, role=role,
+            defaults={'is_active': True, 'appointed_by': request.user, 'removed_at': None},
+        )
+
+        if role == 'LEADER':
+            party.leader = user
+            party.save(update_fields=['leader'])
+
+        messages.success(request, f'{user.username} is now {dict(PartyRole.ROLE_CHOICES)[role]} of {party.name}.')
+
+    return redirect('moderator:party_dashboard')
+
+
+@login_required
+def mod_remove_role(request, role_id):
+    """Remove a leadership/officer role from a party member"""
+    if not can_manage_parties(request.user):
+        messages.error(request, "You don't have permission to manage parties.")
+        return redirect('moderator:dashboard')
+
+    role = get_object_or_404(PartyRole, pk=role_id, is_active=True)
+
+    if request.method == 'POST':
+        role.is_active = False
+        role.removed_at = timezone.now()
+        role.save()
+
+        if role.role == 'LEADER' and role.party.leader_id == role.user_id:
+            role.party.leader = None
+            role.party.save(update_fields=['leader'])
+
+        messages.success(request, f'Removed {role.get_role_display()} role from {role.user.username}.')
+
+    return redirect('moderator:party_dashboard')
+
+
+@login_required
+def mod_approve_join_request(request, request_id):
+    """Approve a pending party join request on behalf of the party leadership"""
+    if not can_manage_parties(request.user):
+        messages.error(request, "You don't have permission to manage parties.")
+        return redirect('moderator:dashboard')
+
+    join_request = get_object_or_404(JoinRequest, pk=request_id, status='PENDING')
+
+    if request.method == 'POST':
+        try:
+            join_request.approve(request.user)
+            messages.success(request, f'{join_request.user.username} has been added to {join_request.party.name}.')
+        except ValueError as e:
+            messages.error(request, str(e))
+
+    return redirect('moderator:party_dashboard')
+
+
+@login_required
+def mod_reject_join_request(request, request_id):
+    """Reject a pending party join request on behalf of the party leadership"""
+    if not can_manage_parties(request.user):
+        messages.error(request, "You don't have permission to manage parties.")
+        return redirect('moderator:dashboard')
+
+    join_request = get_object_or_404(JoinRequest, pk=request_id, status='PENDING')
+
+    if request.method == 'POST':
+        join_request.reject(request.user)
+        messages.success(request, f"{join_request.user.username}'s request to join {join_request.party.name} has been rejected.")
+
+    return redirect('moderator:party_dashboard')
