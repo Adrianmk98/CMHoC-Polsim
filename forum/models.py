@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
-from django.db.models import Q
 
 
 class Province(models.Model):
@@ -57,20 +56,6 @@ class Riding(models.Model):
             return position.user_profile.user if position else None
         except:
             return None
-
-
-class Flair(models.Model):
-    """Thread flairs for categorization"""
-    name = models.CharField(max_length=50, unique=True)
-    color = models.CharField(max_length=7, default='#6c757d')  # Hex color
-    description = models.CharField(max_length=200, blank=True)
-    category = models.ForeignKey('ForumCategory', on_delete=models.SET_NULL, null=True, blank=True, related_name='flairs')
-    
-    class Meta:
-        ordering = ['name']
-    
-    def __str__(self):
-        return self.name
 
 
 class PoliticalParty(models.Model):
@@ -321,78 +306,3 @@ class CabinetPosition(models.Model):
             return f"{months} month{'s' if months != 1 else ''}"
         else:
             return f"{delta.days} day{'s' if delta.days != 1 else ''}"
-
-
-class ForumCategory(models.Model):
-    """Main forum categories"""
-    name = models.CharField(max_length=200)
-    description = models.TextField()
-    order = models.IntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        verbose_name_plural = "Forum Categories"
-        ordering = ['order', 'name']
-    
-    def __str__(self):
-        return self.name
-    
-    def thread_count(self):
-        return self.threads.count()
-    
-    def post_count(self):
-        return sum(thread.posts.count() for thread in self.threads.all())
-
-
-class Thread(models.Model):
-    """Discussion threads"""
-    category = models.ForeignKey(ForumCategory, on_delete=models.CASCADE, related_name='threads')
-    title = models.CharField(max_length=300)
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='threads')
-    flair = models.ForeignKey(Flair, on_delete=models.SET_NULL, null=True, blank=True, related_name='threads')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    is_pinned = models.BooleanField(default=False)
-    is_locked = models.BooleanField(default=False)
-    views = models.IntegerField(default=0)
-    
-    class Meta:
-        ordering = ['-is_pinned', '-updated_at']
-    
-    def __str__(self):
-        return self.title
-    
-    def post_count(self):
-        return self.posts.count()
-    
-    def last_post(self):
-        return self.posts.order_by('-created_at').first()
-    
-    @classmethod
-    def search(cls, query):
-        """Search threads by title and content"""
-        return cls.objects.filter(
-            Q(title__icontains=query) |
-            Q(posts__content__icontains=query)
-        ).distinct()
-
-
-class Post(models.Model):
-    """Individual posts within threads"""
-    thread = models.ForeignKey(Thread, on_delete=models.CASCADE, related_name='posts')
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts')
-    content = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    is_edited = models.BooleanField(default=False)
-    
-    class Meta:
-        ordering = ['created_at']
-    
-    def __str__(self):
-        return f"Post by {self.author.username} in {self.thread.title}"
-    
-    @classmethod
-    def search(cls, query):
-        """Search posts by content"""
-        return cls.objects.filter(content__icontains=query)

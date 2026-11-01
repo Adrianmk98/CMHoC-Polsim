@@ -22,7 +22,7 @@ def moderator_dashboard(request):
     
     if not perms['is_moderator']:
         messages.error(request, "You don't have permission to access moderator tools.")
-        return redirect('forum_index')
+        return redirect('index')
     
     # Get statistics based on permissions
     context = {

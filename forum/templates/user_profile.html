@@ -63,14 +63,6 @@
                     </ul>
                 </div>
 
-                <div class="mb-3">
-                    <h6>Campaign Activity</h6>
-                    <ul class="list-unstyled">
-                        <li><strong>Threads:</strong> {{ history.threads_created }}</li>
-                        <li><strong>Posts:</strong> {{ history.posts_made }}</li>
-                    </ul>
-                </div>
-
             </div>
         </div>
         {% endif %}
@@ -180,45 +172,6 @@
                 <h5>Recent Activity</h5>
             </div>
             <div class="card-body">
-                <!-- Recent Threads -->
-                {% if recent_threads %}
-                <h6>Recent Threads</h6>
-                <div class="list-group mb-3">
-                    {% for thread in recent_threads %}
-                    <a href="{% url 'thread_detail' thread.id %}" class="list-group-item list-group-item-action">
-                        {% if thread.flair %}
-                            <span class="badge" style="background-color: {{ thread.flair.color }};">
-                                {{ thread.flair.name }}
-                            </span>
-                        {% endif %}
-                        <strong>{{ thread.title }}</strong>
-                        <br>
-                        <small class="text-muted">
-                            in {{ thread.category.name }} • {{ thread.created_at|timesince }} ago
-                        </small>
-                    </a>
-                    {% endfor %}
-                </div>
-                {% endif %}
-
-                <!-- Recent Posts -->
-                {% if recent_posts %}
-                <h6>Recent Posts</h6>
-                <div class="list-group mb-3">
-                    {% for post in recent_posts %}
-                    <a href="{% url 'thread_detail' post.thread.id %}" class="list-group-item list-group-item-action">
-                        <strong>{{ post.thread.title }}</strong>
-                        <br>
-                        <small class="text-muted">
-                            {{ post.content|truncatewords:20 }}
-                        </small>
-                        <br>
-                        <small class="text-muted">{{ post.created_at|timesince }} ago</small>
-                    </a>
-                    {% endfor %}
-                </div>
-                {% endif %}
-
                 <!-- Recent Votes -->
                 {% if recent_votes %}
                 <h6>Recent Votes</h6>

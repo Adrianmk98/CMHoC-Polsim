@@ -65,14 +65,3 @@ def notify_bill_status_change(sender, instance, created, **kwargs):
                 bill=instance,
                 message_text=f'Your bill {instance.bill_number} has failed.'
             )
-
-
-# Thread reply signals
-@receiver(post_save, sender='forum.Post')
-def notify_thread_reply(sender, instance, created, **kwargs):
-    if created:
-        # New post created
-        Notification.notify_thread_reply(
-            thread=instance.thread,
-            reply_author=instance.author
-        )

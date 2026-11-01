@@ -84,36 +84,6 @@ def _recent_posts_text(posts, label_fn):
     return "\n\n".join(lines) if lines else "(no prior posts)"
 
 
-def maybe_reply_to_thread(post):
-    """post: a forum.Post that was just created by a human. Maybe have an NPC reply in the same thread."""
-    if not settings.NPCS_ENABLED:
-        return
-
-    thread = post.thread
-    already_replied = set(thread.posts.values_list('author_id', flat=True))
-    npc = select_candidate_npc(exclude_user_ids=already_replied)
-    if npc is None:
-        return
-
-    recent = list(thread.posts.order_by('created_at'))
-    context = _recent_posts_text(recent, lambda p: p.author.username)
-
-    system_prompt = _npc_persona_header(npc)
-    user_prompt = (
-        f"Forum thread: \"{thread.title}\"\n\n"
-        f"Recent posts:\n{context}\n\n"
-        "Write your reply to this thread now."
-    )
-
-    content = _generate_reply(system_prompt, user_prompt)
-    if not content:
-        return
-
-    from forum.models import Post
-    Post.objects.create(thread=thread, author=npc.user_profile.user, content=content)
-    npc.mark_posted()
-
-
 def maybe_reply_to_debate(debate_post):
     """debate_post: a voting.BillDebatePost just created by a human. Maybe have an NPC add a debate post."""
     if not settings.NPCS_ENABLED:

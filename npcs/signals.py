@@ -16,13 +16,6 @@ def _run_async(target, *args):
     transaction.on_commit(lambda: threading.Thread(target=target, args=args, daemon=True).start())
 
 
-@receiver(post_save, sender='forum.Post')
-def on_forum_post_created(sender, instance, created, **kwargs):
-    if not created or _is_npc_user(instance.author):
-        return
-    _run_async(services.maybe_reply_to_thread, instance)
-
-
 @receiver(post_save, sender='voting.BillDebatePost')
 def on_bill_debate_post_created(sender, instance, created, **kwargs):
     if not created or _is_npc_user(instance.author):

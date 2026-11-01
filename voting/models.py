@@ -192,8 +192,6 @@ class PlayerHistory(models.Model):
     
     def update_stats(self):
         """Recalculate all statistics"""
-        from forum.models import Thread, Post
-        
         # Voting stats
         ballots = Ballot.objects.filter(voter=self.user)
         self.total_votes = ballots.count()
@@ -206,10 +204,6 @@ class PlayerHistory(models.Model):
         self.bills_sponsored = bills.count()
         self.bills_passed = bills.filter(status='ROYAL_ASSENT').count()
         self.bills_failed = bills.filter(status='FAILED').count()
-        
-        # Forum activity
-        self.threads_created = Thread.objects.filter(author=self.user).count()
-        self.posts_made = Post.objects.filter(author=self.user).count()
         
         # Participation rate - only counts votes held while the user actually
         # had a seat (MP/Senator); you can't miss a vote you weren't eligible to cast

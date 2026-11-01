@@ -26,8 +26,8 @@
                     <a href="{% url 'register' %}" class="btn btn-light btn-lg me-2">Join Now</a>
                     <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">Login</a>
                 {% else %}
-                    <a href="{% url 'forum_categories' %}" class="btn btn-light btn-lg me-2">Campaign Trail</a>
-                    <a href="{% url 'press:create' %}" class="btn btn-outline-light btn-lg">Write Press Release</a>
+                    <a href="{% url 'press:create' %}" class="btn btn-light btn-lg me-2">Write Press Release</a>
+                    <a href="{% url 'chirps:feed' %}" class="btn btn-outline-light btn-lg">Chirps</a>
                 {% endif %}
             </div>
         </div>
@@ -37,15 +37,7 @@
 
 <!-- Quick Stats -->
 <div class="row mb-4">
-    <div class="col-md-3 mb-3">
-        <div class="card text-center h-100">
-            <div class="card-body">
-                <h2 class="text-primary mb-0">{{ stats.total_threads }}</h2>
-                <p class="mb-0 text-muted">Monthly Debate</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
+    <div class="col-md-4 mb-3">
         <div class="card text-center h-100">
             <div class="card-body">
                 <h2 class="text-success mb-0">{{ stats.total_users }}</h2>
@@ -53,7 +45,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3 mb-3">
+    <div class="col-md-4 mb-3">
         <div class="card text-center h-100">
             <div class="card-body">
                 <h2 class="text-warning mb-0">{{ stats.active_bills }}</h2>
@@ -61,7 +53,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3 mb-3">
+    <div class="col-md-4 mb-3">
         <div class="card text-center h-100">
             <div class="card-body">
                 <h2 class="text-info mb-0">{{ stats.total_parties }}</h2>
@@ -229,39 +221,12 @@
         </div>
         {% endif %}
 
-        <!-- Recent Activity -->
-        <div class="card mb-3">
-            <div class="card-header">
-                <h6 class="mb-0">🔥 Recent Campaign Activity</h6>
-            </div>
-            <div class="list-group list-group-flush">
-                {% for thread in recent_threads %}
-                <a href="{% url 'thread_detail' thread.id %}" class="list-group-item list-group-item-action">
-                    <h6 class="mb-1 small">{{ thread.title|truncatewords:10 }}</h6>
-                    <small class="text-muted">
-                        {{ thread.author.username }} • {{ thread.created_at|timesince }} ago
-                    </small>
-                </a>
-                {% empty %}
-                <div class="list-group-item text-muted small">
-                    No recent activity
-                </div>
-                {% endfor %}
-            </div>
-            <div class="card-footer">
-                <a href="{% url 'forum_categories' %}" class="btn btn-sm btn-outline-secondary w-100">Campaign Trail</a>
-            </div>
-        </div>
-
         <!-- Quick Links -->
         <div class="card">
             <div class="card-header">
                 <h6 class="mb-0">🔗 Quick Links</h6>
             </div>
             <div class="list-group list-group-flush">
-                <a href="{% url 'forum_categories' %}" class="list-group-item list-group-item-action">
-                    📋 Campaign Trail
-                </a>
                 <a href="{% url 'parties:party_list' %}" class="list-group-item list-group-item-action">
                     🎭 Political Parties
                 </a>

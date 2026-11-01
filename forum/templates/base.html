@@ -112,18 +112,6 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <!-- Campaign Trail Dropdown -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="forumDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Campaign Trail
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="forumDropdown">
-                            <li><a class="dropdown-item" href="{% url 'forum_index' %}">📋 All Categories</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'search' %}">🔍 Search</a></li>
-                        </ul>
-                    </li>
-
                     <!-- Government Dropdown -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="govDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -199,12 +187,6 @@
                     {% endif %}
                 </ul>
 
-                <!-- Search Bar -->
-                <form action="{% url 'search' %}" method="get" class="d-flex me-3">
-                    <input type="text" name="q" class="form-control form-control-sm" placeholder="Search..." style="width: 200px;">
-                    <button type="submit" class="btn btn-sm btn-outline-secondary ms-1">🔍</button>
-                </form>
-
                 <!-- User Menu -->
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
@@ -276,7 +258,6 @@
                 <div class="col-md-2 mb-4">
                     <h6>Navigate</h6>
                     <ul class="footer-links">
-                        <li><a href="{% url 'forum_index' %}">Campaign Trail</a></li>
                         <li><a href="{% url 'press:list' %}">Press Releases</a></li>
                         <li><a href="{% url 'chirps:feed' %}">Chirps</a></li>
                         <li><a href="{% url 'elections:election_list' %}">Elections</a></li>
@@ -301,7 +282,6 @@
                             <li><a href="{% url 'login' %}">Login</a></li>
                             <li><a href="{% url 'register' %}">Register</a></li>
                         {% endif %}
-                        <li><a href="{% url 'search' %}">Search</a></li>
                         {% if user.is_authenticated %}
                             <li><a href="{% url 'press:create' %}">Write Press Release</a></li>
                         {% endif %}
