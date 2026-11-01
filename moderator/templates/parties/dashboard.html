@@ -1,0 +1,148 @@
+{% extends 'mod_base.html' %}
+
+{% block title %}Party Management - Moderator{% endblock %}
+
+{% block mod_content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'moderator:dashboard' %}">Moderator</a></li>
+                <li class="breadcrumb-item active">Parties</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">🎗️ Party Management</h3>
+    <a href="{% url 'parties:party_list' %}" class="btn btn-outline-secondary">View Public Party Pages</a>
+</div>
+
+{% if parties %}
+{% for party in parties %}
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <span class="badge" style="background-color: {{ party.color }};">&nbsp;&nbsp;</span>
+            <strong class="ms-1">{{ party.name }} ({{ party.abbreviation }})</strong>
+            {% if party.leader %}
+                <span class="ms-2 text-muted">Leader: {{ party.leader.username }}</span>
+            {% else %}
+                <span class="ms-2 badge bg-danger">No Leader</span>
+            {% endif %}
+            <span class="ms-2 text-muted">• {{ party.member_count }} members</span>
+        </div>
+        {% if party.pending_requests %}
+        <span class="badge bg-warning text-dark">{{ party.pending_requests|length }} pending request{{ party.pending_requests|length|pluralize }}</span>
+        {% endif %}
+    </div>
+    <div class="card-body">
+
+        {% if party.pending_requests %}
+        <h6>Pending Join Requests</h6>
+        <table class="table table-sm mb-3">
+            <tbody>
+                {% for jr in party.pending_requests %}
+                <tr>
+                    <td><small>{{ jr.user.username }}</small></td>
+                    <td><small class="text-muted">{{ jr.message|default:"—"|truncatechars:80 }}</small></td>
+                    <td><small class="text-muted">{{ jr.requested_at|date:"M d, Y" }}</small></td>
+                    <td class="text-end">
+                        <form method="post" action="{% url 'moderator:mod_approve_join_request' jr.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-xs btn-outline-success btn-sm py-0 px-1">Accept</button>
+                        </form>
+                        <form method="post" action="{% url 'moderator:mod_reject_join_request' jr.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-xs btn-outline-danger btn-sm py-0 px-1">Reject</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        <h6>Members &amp; Roles</h6>
+        {% if party.active_members %}
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Member</th>
+                    <th>Roles</th>
+                    <th>Joined</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for membership in party.active_members %}
+                <tr>
+                    <td><small>{{ membership.user.username }}{% if membership.is_founding_member %} <span class="badge bg-light text-dark">Founder</span>{% endif %}</small></td>
+                    <td>
+                        {% for role in party.active_roles %}
+                            {% if role.user_id == membership.user_id %}
+                            <span class="badge bg-primary">
+                                {{ role.get_role_display }}
+                                <a href="#" class="text-white text-decoration-none ms-1"
+                                   onclick="document.getElementById('remove-role-{{ role.id }}').submit(); return false;"
+                                   title="Remove role">&times;</a>
+                            </span>
+                            <form id="remove-role-{{ role.id }}" method="post" action="{% url 'moderator:mod_remove_role' role.id %}" class="d-none">
+                                {% csrf_token %}
+                            </form>
+                            {% endif %}
+                        {% endfor %}
+                    </td>
+                    <td><small class="text-muted">{{ membership.joined_at|date:"M d, Y" }}</small></td>
+                    <td class="text-end">
+                        <form method="post" action="{% url 'moderator:mod_assign_role' party.id %}" class="d-inline-flex gap-1">
+                            {% csrf_token %}
+                            <input type="hidden" name="user_id" value="{{ membership.user_id }}">
+                            <select name="role" class="form-select form-select-sm py-0" style="width: auto;">
+                                {% for value, label in role_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-xs btn-outline-primary btn-sm py-0 px-1">Assign</button>
+                        </form>
+                        <form method="post" action="{% url 'moderator:mod_remove_member' membership.id %}" class="d-inline"
+                              onsubmit="return confirm('Remove {{ membership.user.username }} from {{ party.name }}?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-xs btn-outline-danger btn-sm py-0 px-1">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted mb-0">No members yet.</p>
+        {% endif %}
+
+        <form method="post" action="{% url 'moderator:mod_add_member' party.id %}" class="d-flex gap-2 mt-3">
+            {% csrf_token %}
+            <select name="user_id" class="form-select form-select-sm" style="max-width: 300px;" required>
+                <option value="">-- Add unaffiliated user --</option>
+                {% for user in unaffiliated_users %}
+                <option value="{{ user.id }}">{{ user.username }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-success">+ Add Member</button>
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card">
+    <div class="card-body text-center text-muted py-5">
+        <p>No parties yet.</p>
+    </div>
+</div>
+{% endif %}
+
+<div class="mt-3">
+    <a href="{% url 'moderator:dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+</div>
+
+{% endblock %}

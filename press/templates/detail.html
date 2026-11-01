@@ -48,10 +48,10 @@
                         
                         {% if user == press_release.author or user.is_staff %}
                         <div class="btn-group">
-                            <a href="{% url 'press:edit' press_release.slug %}" class="btn btn-sm btn-outline-primary">
+                            <a href="{% url 'press:edit' press_release.pk %}" class="btn btn-sm btn-outline-primary">
                                 ✏️ Edit
                             </a>
-                            <a href="{% url 'press:delete' press_release.slug %}" class="btn btn-sm btn-outline-danger">
+                            <a href="{% url 'press:delete' press_release.pk %}" class="btn btn-sm btn-outline-danger">
                                 🗑️ Delete
                             </a>
                         </div>
@@ -120,7 +120,7 @@
             </div>
             <div class="list-group list-group-flush">
                 {% for pr in related %}
-                <a href="{% url 'press:detail' pr.slug %}" class="list-group-item list-group-item-action">
+                <a href="{% url 'press:detail' pr.pk %}" class="list-group-item list-group-item-action">
                     <div class="d-flex justify-content-between">
                         <div>
                             <strong>{{ pr.title }}</strong>

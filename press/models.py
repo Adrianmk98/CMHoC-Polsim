@@ -78,7 +78,7 @@ class PressRelease(models.Model):
         super().save(*args, **kwargs)
     
     def get_absolute_url(self):
-        return reverse('press:detail', kwargs={'slug': self.slug})
+        return reverse('press:detail', kwargs={'pk': self.pk})
     
     def get_tags_list(self):
         """Return tags as a list"""

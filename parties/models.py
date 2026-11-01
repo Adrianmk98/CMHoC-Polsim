@@ -22,6 +22,10 @@ class Party(models.Model):
     abbreviation = models.CharField(max_length=10, unique=True)
     color = models.CharField(max_length=7, default='#808080', help_text='Hex color code (e.g., #FF0000)')
     logo = models.TextField(blank=True, help_text='Base64 encoded logo image')
+    political_party = models.ForeignKey(
+        'forum.PoliticalParty', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='game_parties', help_text='The official real-world party this party represents'
+    )
     
     # Political info
     ideology = models.CharField(max_length=20, choices=IDEOLOGY_CHOICES, default='CENTER')

@@ -9,6 +9,7 @@
     <a href="{% url 'moderator:create_election' %}" class="btn btn-sm btn-outline-light py-0">+ Election</a>
     <a href="{% url 'moderator:cabinet_dashboard' %}" class="btn btn-sm btn-outline-light py-0">Cabinet</a>
     <a href="{% url 'moderator:bill_dashboard' %}" class="btn btn-sm btn-outline-light py-0">Bills</a>
+    <a href="{% url 'moderator:party_dashboard' %}" class="btn btn-sm btn-outline-light py-0">Parties</a>
     <a href="{% url 'moderator:scores_dashboard' %}" class="btn btn-sm btn-outline-light py-0">Scores</a>
     {% if user.is_staff %}
     <a href="/admin/" class="btn btn-sm btn-outline-warning py-0">Admin</a>

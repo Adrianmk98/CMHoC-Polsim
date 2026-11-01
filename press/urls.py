@@ -15,7 +15,7 @@ urlpatterns = [
     path('upload-image/', views.upload_image, name='upload_image'),
     
     # Press release CRUD
-    path('<slug:slug>/', views.press_detail, name='detail'),
-    path('<slug:slug>/edit/', views.press_edit, name='edit'),
-    path('<slug:slug>/delete/', views.press_delete, name='delete'),
+    path('<int:pk>/', views.press_detail, name='detail'),
+    path('<int:pk>/edit/', views.press_edit, name='edit'),
+    path('<int:pk>/delete/', views.press_delete, name='delete'),
 ]
