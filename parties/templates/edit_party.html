@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit {{ party.name }} - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3>Edit {{ party.name }}</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label">Party Name *</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger">{{ form.name.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Abbreviation *</label>
+                        {{ form.abbreviation }}
+                        {% if form.abbreviation.errors %}
+                            <div class="text-danger">{{ form.abbreviation.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Party Color *</label>
+                        {{ form.color }}
+                        {% if form.color.errors %}
+                            <div class="text-danger">{{ form.color.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Ideology *</label>
+                        {{ form.ideology }}
+                        {% if form.ideology.errors %}
+                            <div class="text-danger">{{ form.ideology.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Platform *</label>
+                        {{ form.platform }}
+                        {% if form.platform.errors %}
+                            <div class="text-danger">{{ form.platform.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Party Constitution PDF</label>
+                        {% if party.constitution_pdf %}
+                            <div class="mb-2"><a href="{{ party.constitution_pdf.url }}" target="_blank">Current Constitution PDF</a></div>
+                        {% endif %}
+                        {{ form.constitution_pdf }}
+                        <small class="form-text text-muted">Optional: upload a PDF to replace the current one</small>
+                        {% if form.constitution_pdf.errors %}
+                            <div class="text-danger">{{ form.constitution_pdf.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg flex-grow-1">Save Changes</button>
+                        <a href="{% url 'parties:detail' party.pk %}" class="btn btn-secondary btn-lg">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

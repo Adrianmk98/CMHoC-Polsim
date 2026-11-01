@@ -43,16 +43,18 @@ def bill_list(request):
 
 def bill_detail(request, bill_id):
     """View bill details and vote"""
+    from moderator.permissions import can_manage_bills
+
     bill = get_object_or_404(Bill, pk=bill_id)
     current_vote = bill.current_vote()
-    
+
     user_ballot = None
     if request.user.is_authenticated and current_vote:
         user_ballot = Ballot.objects.filter(
             vote_session=current_vote,
             voter=request.user
         ).first()
-    
+
     context = {
         'bill': bill,
         'current_vote': current_vote,
@@ -61,6 +63,7 @@ def bill_detail(request, bill_id):
         'active_score_session': _active_score_session(),
         'debate_posts': bill.debate_posts.all().select_related('author', 'author__profile__party'),
         'active_stages': Bill.STATUS_CHOICES,
+        'can_edit_bill': request.user == bill.sponsor or can_manage_bills(request.user),
     }
     return render(request, 'bill_detail.html', context)
 
@@ -149,23 +152,46 @@ def vote_results(request, vote_id):
 def create_bill(request):
     """Create a new bill"""
     if request.method == 'POST':
-        form = BillForm(request.POST)
+        form = BillForm(request.POST, request.FILES)
         if form.is_valid():
             bill = form.save(commit=False)
             bill.sponsor = request.user
             bill.save()
-            
+
             # Update player history
             history, created = PlayerHistory.objects.get_or_create(user=request.user)
             history.update_stats()
-            
+
             messages.success(request, f'Bill {bill.bill_number} created successfully!')
             return redirect('voting:bill_detail', bill_id=bill.id)
     else:
         form = BillForm()
-    
+
     context = {'form': form}
     return render(request, 'create_bill.html', context)
+
+
+@login_required
+def edit_bill(request, bill_id):
+    """Edit a bill - sponsor or a moderator with bill-management rights only"""
+    from moderator.permissions import can_manage_bills
+
+    bill = get_object_or_404(Bill, pk=bill_id)
+    if not (request.user == bill.sponsor or can_manage_bills(request.user)):
+        messages.error(request, "You don't have permission to edit this bill.")
+        return redirect('voting:bill_detail', bill_id=bill.id)
+
+    if request.method == 'POST':
+        form = BillForm(request.POST, request.FILES, instance=bill)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Bill {bill.bill_number} updated successfully!')
+            return redirect('voting:bill_detail', bill_id=bill.id)
+    else:
+        form = BillForm(instance=bill)
+
+    context = {'form': form, 'bill': bill}
+    return render(request, 'edit_bill.html', context)
 
 
 @login_required

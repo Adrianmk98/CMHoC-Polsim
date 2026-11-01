@@ -71,12 +71,15 @@ def party_detail(request, pk):
             status='PENDING'
         ).first()
     
+    from moderator.permissions import can_manage_parties
+
     context = {
         'party': party,
         'members': members,
         'leadership': leadership,
         'active_election': active_election,
         'active_confidence': active_confidence,
+        'can_edit_party': can_manage or can_manage_parties(request.user),
         'is_member': is_member,
         'can_manage': can_manage,
         'pending_request': pending_request,
@@ -92,7 +95,7 @@ def create_party(request):
         return redirect('parties:party_list')
 
     if request.method == 'POST':
-        form = PartyForm(request.POST)
+        form = PartyForm(request.POST, request.FILES)
         if form.is_valid():
             party = form.save(commit=False)
             party.leader = request.user
@@ -138,6 +141,29 @@ def create_party(request):
         'form': form,
     }
     return render(request, 'create.html', context)
+
+
+@login_required
+def edit_party(request, pk):
+    """Edit a party - leader/deputy/executive or a moderator with party-management rights only"""
+    from moderator.permissions import can_manage_parties
+
+    party = get_object_or_404(Party, pk=pk)
+    if not (party.can_user_manage(request.user) or can_manage_parties(request.user)):
+        messages.error(request, "You don't have permission to edit this party.")
+        return redirect('parties:detail', pk=party.pk)
+
+    if request.method == 'POST':
+        form = PartyForm(request.POST, request.FILES, instance=party)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Party "{party.name}" updated successfully!')
+            return redirect('parties:detail', pk=party.pk)
+    else:
+        form = PartyForm(instance=party)
+
+    context = {'form': form, 'party': party}
+    return render(request, 'edit_party.html', context)
 
 
 @login_required

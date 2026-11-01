@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     'npcs',
     'chirps',
     'django.contrib.humanize',
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -168,6 +169,24 @@ STATICFILES_DIRS = [
 ]
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Media files (Bill PDFs, Party Constitution PDFs, user avatars) - stored in a
+# Google Cloud Storage bucket. Credentials come from the GCE instance's attached
+# service account, same as VERTEX_PROJECT_ID above - no key file needed.
+GS_BUCKET_NAME = config('GS_BUCKET_NAME', default='')
+GS_PROJECT_ID = config('GS_PROJECT_ID', default='')
+GS_DEFAULT_ACL = 'publicRead'
+GS_FILE_OVERWRITE = False
+MEDIA_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/'
+
+STORAGES = {
+    'default': {
+        'BACKEND': 'storages.backends.gcloud.GoogleCloudStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
 
 # Authentication settings
 LOGIN_REDIRECT_URL = 'index'  # Where to redirect after login

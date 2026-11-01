@@ -202,10 +202,12 @@
 
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                👤 {{ user.username }}
+                                {% include 'includes/avatar.html' with avatar_user=user size=24 %}
+                                {{ user.username }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                                 <li><a class="dropdown-item" href="{% url 'user_profile' user.id %}">My Profile</a></li>
+                                <li><a class="dropdown-item" href="{% url 'edit_profile' %}">✏️ Edit Profile Picture</a></li>
                                 <li><a class="dropdown-item" href="{% url 'press:my_releases' %}">📰 My Press Releases</a></li>
                                 <li><a class="dropdown-item" href="{% url 'notifications:notification_list' %}">🔔 Notifications</a></li>
                                 <li><a class="dropdown-item" href="{% url 'notifications:notification_preferences' %}">⚙️ Notification Settings</a></li>

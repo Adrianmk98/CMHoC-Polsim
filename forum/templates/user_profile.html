@@ -8,8 +8,14 @@
         <!-- Profile Card -->
         <div class="card mb-3">
             <div class="card-body text-center">
+                <div class="mb-2">
+                    {% include 'includes/avatar.html' with avatar_user=profile_user size=96 %}
+                </div>
                 <h3>{{ profile_user.username }}</h3>
-                
+                {% if profile_user == request.user %}
+                    <a href="{% url 'edit_profile' %}" class="small">Edit profile picture</a>
+                {% endif %}
+
                 {% if profile.party %}
                     <span class="party-badge mt-2 d-inline-block" style="background-color: {{ profile.party.color }};">
                         {{ profile.party.name }}

@@ -21,9 +21,9 @@
                     Use this form to submit a new bill for consideration. All fields marked with * are required.
                 </p>
 
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="{{ form.bill_number.id_for_label }}" class="form-label">Bill Number *</label>
@@ -85,6 +85,15 @@
                         <small class="form-text text-muted">The complete text of the bill, including all sections and clauses</small>
                         {% if form.full_text.errors %}
                             <div class="text-danger">{{ form.full_text.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.pdf.id_for_label }}" class="form-label">Bill PDF</label>
+                        {{ form.pdf }}
+                        <small class="form-text text-muted">Optional: upload a PDF of the bill text, viewable in-browser on the bill's page</small>
+                        {% if form.pdf.errors %}
+                            <div class="text-danger">{{ form.pdf.errors }}</div>
                         {% endif %}
                     </div>
 

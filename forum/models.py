@@ -1,6 +1,10 @@
+import io
+
+from django.core.files.base import ContentFile
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from PIL import Image
 
 
 class Province(models.Model):
@@ -91,10 +95,23 @@ class UserProfile(models.Model):
     riding_name = models.CharField(max_length=200, blank=True)  # Deprecated: kept for backwards compatibility
     role = models.CharField(max_length=100, blank=True)  # e.g., MP, Senator, Minister
     bio = models.TextField(blank=True)
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     joined_date = models.DateTimeField(auto_now_add=True)
-    
+
     def __str__(self):
         return f"{self.user.username}'s Profile"
+
+    def save(self, *args, **kwargs):
+        if self.avatar and not self.avatar._committed:
+            image = Image.open(self.avatar).convert('RGB')
+            side = min(image.size)
+            left = (image.width - side) // 2
+            top = (image.height - side) // 2
+            image = image.crop((left, top, left + side, top + side)).resize((512, 512))
+            buffer = io.BytesIO()
+            image.save(buffer, format='JPEG', quality=85)
+            self.avatar.save(f'{self.user_id}.jpg', ContentFile(buffer.getvalue()), save=False)
+        super().save(*args, **kwargs)
     
     def get_riding_display(self):
         """Get riding name from Riding object or fallback to riding_name"""

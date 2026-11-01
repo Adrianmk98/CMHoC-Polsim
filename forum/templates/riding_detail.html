@@ -45,6 +45,7 @@
                                 <div class="card-body">
                                     <h6>
                                         <a href="{% url 'user_profile' current_mp.id %}">
+                                            {% include 'includes/avatar.html' with avatar_user=current_mp size=24 %}
                                             {{ current_mp.username }}
                                         </a>
                                     </h6>
@@ -89,6 +90,7 @@
                                 <div>
                                     <h6 class="mb-1">
                                         <a href="{% url 'user_profile' position.user_profile.user.id %}">
+                                            {% include 'includes/avatar.html' with avatar_user=position.user_profile.user size=20 %}
                                             {{ position.user_profile.user.username }}
                                         </a>
                                         {% if position.is_current %}

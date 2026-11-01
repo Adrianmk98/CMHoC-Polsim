@@ -87,8 +87,11 @@
                         <p class="text-muted mb-2">{{ press.excerpt|truncatewords:40 }}</p>
                         <div class="d-flex align-items-center text-muted small">
                             <span class="me-3">
-                                <strong>By:</strong> 
-                                <a href="{% url 'press:by_author' press.author.username %}">{{ press.author.username }}</a>
+                                <strong>By:</strong>
+                                <a href="{% url 'press:by_author' press.author.username %}">
+                                    {% include 'includes/avatar.html' with avatar_user=press.author size=20 %}
+                                    {{ press.author.username }}
+                                </a>
                             </span>
                             {% if press.party %}
                                 <span class="me-3">
@@ -138,6 +141,7 @@
                 <p class="mb-2">
                     <strong>Prime Minister:</strong><br>
                     <a href="{% url 'user_profile' current_cabinet.prime_minister.id %}">
+                        {% include 'includes/avatar.html' with avatar_user=current_cabinet.prime_minister size=20 %}
                         {{ current_cabinet.prime_minister.username }}
                     </a>
                     {% if current_cabinet.prime_minister.profile.party %}

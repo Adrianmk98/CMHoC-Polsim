@@ -30,6 +30,7 @@ class Party(models.Model):
     # Political info
     ideology = models.CharField(max_length=20, choices=IDEOLOGY_CHOICES, default='CENTER')
     platform = models.TextField(blank=True, help_text='Party platform and policies')
+    constitution_pdf = models.FileField(upload_to='constitutions/', blank=True, null=True)
     
     # Leadership
     leader = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='led_party')

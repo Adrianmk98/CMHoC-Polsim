@@ -31,6 +31,7 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <a href="{% url 'chirps:by_user' chirp.author.username %}" class="fw-bold text-decoration-none">
+                            {% include 'includes/avatar.html' with avatar_user=chirp.author size=24 %}
                             @{{ chirp.author.username }}
                         </a>
                         {% if chirp.author.profile.party %}

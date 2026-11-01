@@ -21,4 +21,5 @@ urlpatterns = [
     path('cabinet/<int:cabinet_id>/', views.cabinet_detail, name='cabinet_detail'),
     path('cabinet/portfolio/<str:portfolio>/', views.cabinet_position_history, name='portfolio_history'),
     path('user/<int:userid>/', views.user_profile, name='user_profile'),
+    path('profile/edit/', views.edit_profile, name='edit_profile'),
 ]
