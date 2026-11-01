@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Chirps - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 offset-lg-2">
+        <h2 class="mb-4">🐦 Chirps</h2>
+
+        {% if user.is_authenticated %}
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.content }}
+                    <div class="text-end mt-2">
+                        <button type="submit" class="btn btn-primary">Chirp</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-muted">
+            <a href="{% url 'login' %}">Log in</a> to post a chirp.
+        </p>
+        {% endif %}
+
+        {% for chirp in chirps %}
+        <div class="card mb-2">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'chirps:by_user' chirp.author.username %}" class="fw-bold text-decoration-none">
+                        @{{ chirp.author.username }}
+                    </a>
+                    <small class="text-muted">{{ chirp.created_at|date:"M d, Y H:i" }}</small>
+                </div>
+                <p class="mb-1">{{ chirp.content }}</p>
+                {% if user == chirp.author or user.is_staff %}
+                <form method="post" action="{% url 'chirps:delete' chirp.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-link btn-sm text-danger p-0">Delete</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-muted">No chirps yet.</p>
+        {% endfor %}
+
+        {% if chirps.has_other_pages %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if chirps.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ chirps.previous_page_number }}">Previous</a></li>
+                {% endif %}
+                <li class="page-item disabled"><span class="page-link">Page {{ chirps.number }} of {{ chirps.paginator.num_pages }}</span></li>
+                {% if chirps.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ chirps.next_page_number }}">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

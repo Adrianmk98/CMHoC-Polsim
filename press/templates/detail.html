@@ -159,33 +159,8 @@
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h6>Share</h6>
-            </div>
-            <div class="card-body">
-                <button class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="copyLink()">
-                    📋 Copy Link
-                </button>
-                <a href="https://twitter.com/intent/tweet?url={{ request.build_absolute_uri }}&text={{ press_release.title }}" 
-                   target="_blank" class="btn btn-sm btn-outline-info w-100 mb-2">
-                    🐦 Share on Twitter
-                </a>
-                <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri }}" 
-                   target="_blank" class="btn btn-sm btn-outline-primary w-100">
-                    📘 Share on Facebook
-                </a>
-            </div>
-        </div>
     </div>
 </div>
-
-<script>
-function copyLink() {
-    navigator.clipboard.writeText(window.location.href);
-    alert('Link copied to clipboard!');
-}
-</script>
 
 <style>
 .press-content {
