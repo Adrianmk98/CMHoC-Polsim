@@ -57,6 +57,11 @@
                 <div class="text-end">
                     {% if riding.current_mp %}
                         <span class="badge bg-success">MP: {{ riding.current_mp.username }}</span>
+                        {% if riding.current_mp.profile.party %}
+                            <span class="party-badge" style="background-color: {{ riding.current_mp.profile.party.color }};">
+                                {{ riding.current_mp.profile.party.abbreviation }}
+                            </span>
+                        {% endif %}
                     {% else %}
                         <span class="badge bg-secondary">Vacant</span>
                     {% endif %}

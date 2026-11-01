@@ -11,7 +11,14 @@
         <div class="card mb-2">
             <div class="card-body py-2">
                 <div class="d-flex justify-content-between">
-                    <span class="fw-bold">@{{ chirp.author.username }}</span>
+                    <div>
+                        <span class="fw-bold">@{{ chirp.author.username }}</span>
+                        {% if chirp.author.profile.party %}
+                            <span class="party-badge" style="background-color: {{ chirp.author.profile.party.color }};">
+                                {{ chirp.author.profile.party.abbreviation }}
+                            </span>
+                        {% endif %}
+                    </div>
                     <small class="text-muted">{{ chirp.created_at|date:"M d, Y H:i" }}</small>
                 </div>
                 <p class="mb-1">{{ chirp.content }}</p>

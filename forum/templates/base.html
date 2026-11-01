@@ -132,6 +132,7 @@
                         <ul class="dropdown-menu" aria-labelledby="govDropdown">
                             <li><a class="dropdown-item" href="{% url 'cabinet_list' %}">🏛️ Cabinet</a></li>
                             <li><a class="dropdown-item" href="{% url 'riding_list' %}">🗳️ Ridings</a></li>
+                            <li><a class="dropdown-item" href="{% url 'parties:party_list' %}">🎉 Parties</a></li>
                             <li><a class="dropdown-item" href="{% url 'elections:election_list' %}">📊 Elections</a></li>
                         </ul>
                     </li>
@@ -150,9 +151,18 @@
                         </ul>
                     </li>
 
-                    <!-- Press -->
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'press:list' %}">📰 Press</a>
+                    <!-- Press Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="pressDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            📰 Press
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="pressDropdown">
+                            <li><a class="dropdown-item" href="{% url 'press:list' %}">📰 All Press Releases</a></li>
+                            {% if user.is_authenticated %}
+                                <li><a class="dropdown-item" href="{% url 'press:create' %}">➕ Write Press Release</a></li>
+                                <li><a class="dropdown-item" href="{% url 'press:my_releases' %}">🗂️ My Press Releases</a></li>
+                            {% endif %}
+                        </ul>
                     </li>
 
                     <!-- Chirps -->

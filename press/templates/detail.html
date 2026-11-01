@@ -101,7 +101,14 @@
                 {% for comment in comments %}
                 <div class="mb-3 pb-3 border-bottom">
                     <div class="d-flex justify-content-between">
-                        <strong>{{ comment.author.username }}</strong>
+                        <div>
+                            <strong>{{ comment.author.username }}</strong>
+                            {% if comment.author.profile.party %}
+                                <span class="party-badge" style="background-color: {{ comment.author.profile.party.color }};">
+                                    {{ comment.author.profile.party.abbreviation }}
+                                </span>
+                            {% endif %}
+                        </div>
                         <small class="text-muted">{{ comment.created_at|date:"F d, Y g:i A" }}</small>
                     </div>
                     <p class="mb-0 mt-2">{{ comment.content|linebreaks }}</p>

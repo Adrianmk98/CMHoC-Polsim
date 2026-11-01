@@ -22,7 +22,7 @@ def chirp_feed(request):
     else:
         form = ChirpForm()
 
-    chirps = Chirp.objects.select_related('author').all()
+    chirps = Chirp.objects.select_related('author__profile__party').all()
     paginator = Paginator(chirps, 25)
     page_obj = paginator.get_page(request.GET.get('page'))
 
@@ -36,7 +36,7 @@ def chirp_feed(request):
 def chirps_by_user(request, username):
     """A single user's chirps."""
     author = get_object_or_404(User, username=username)
-    chirps = Chirp.objects.filter(author=author)
+    chirps = Chirp.objects.filter(author=author).select_related('author__profile__party')
     paginator = Paginator(chirps, 25)
     page_obj = paginator.get_page(request.GET.get('page'))
 

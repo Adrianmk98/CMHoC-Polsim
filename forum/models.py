@@ -53,7 +53,7 @@ class Riding(models.Model):
                 position_type='MP',
                 riding_obj=self,
                 end_date__isnull=True
-            ).first()
+            ).select_related('user_profile__user', 'user_profile__party').first()
             return position.user_profile.user if position else None
         except:
             return None
