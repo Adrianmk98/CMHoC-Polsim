@@ -320,7 +320,7 @@ def leadership_election_detail(request, pk):
         'candidates': candidates,
         'can_vote': can_vote,
     }
-    return render(request, 'election_detail.html', context)
+    return render(request, 'leadership_election_detail.html', context)
 
 
 @login_required
