@@ -1,0 +1,53 @@
+{% extends 'mod_base.html' %}
+
+{% block title %}NPC Management - Moderator{% endblock %}
+
+{% block mod_content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'moderator:dashboard' %}">Moderator</a></li>
+                <li class="breadcrumb-item active">NPCs</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">🤖 NPC Management</h3>
+</div>
+
+{% if npcs %}
+<table class="table table-sm align-middle">
+    <thead>
+        <tr>
+            <th>Username</th>
+            <th>Party</th>
+            <th>Active</th>
+            <th>Manually Edited</th>
+            <th>Reply Chance</th>
+            <th>Cooldown (min)</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for npc in npcs %}
+        <tr>
+            <td>{{ npc.user_profile.user.username }}</td>
+            <td>{% if npc.party %}{{ npc.party.name }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td>{% if npc.is_active %}✅{% else %}❌{% endif %}</td>
+            <td>{% if npc.persona_manually_edited %}✅{% else %}❌{% endif %}</td>
+            <td>{{ npc.reply_chance }}</td>
+            <td>{{ npc.cooldown_minutes }}</td>
+            <td class="text-end">
+                <a href="{% url 'moderator:mod_edit_npc' npc.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="text-muted">No NPCs found.</p>
+{% endif %}
+{% endblock %}

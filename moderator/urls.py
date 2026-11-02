@@ -38,6 +38,10 @@ urlpatterns = [
     path('parties/join-requests/<int:request_id>/approve/', views.mod_approve_join_request, name='mod_approve_join_request'),
     path('parties/join-requests/<int:request_id>/reject/', views.mod_reject_join_request, name='mod_reject_join_request'),
 
+    # NPC management
+    path('npcs/', views.npc_dashboard, name='npc_dashboard'),
+    path('npcs/<int:pk>/edit/', views.mod_edit_npc, name='mod_edit_npc'),
+
     # Score management (moderator-only polling calculator)
     path('scores/', views.scores_dashboard, name='scores_dashboard'),
     path('scores/session/create/', views.session_create, name='session_create'),
