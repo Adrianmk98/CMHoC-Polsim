@@ -36,24 +36,6 @@
                         {% endif %}
                     </div>
 
-                    {% if is_admin %}
-                    <div class="mb-3">
-                        <label class="form-label">Reply Chance (0-1)</label>
-                        {{ form.reply_chance }}
-                        {% if form.reply_chance.errors %}
-                            <div class="text-danger">{{ form.reply_chance.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Cooldown Minutes</label>
-                        {{ form.cooldown_minutes }}
-                        {% if form.cooldown_minutes.errors %}
-                            <div class="text-danger">{{ form.cooldown_minutes.errors }}</div>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary btn-lg flex-grow-1">Save Changes</button>
                         {% if party %}

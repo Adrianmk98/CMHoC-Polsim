@@ -13,6 +13,8 @@ from elections.models import Election, RidingElectionResult, CandidateResult
 from forum.models import Riding, UserProfile, PoliticalParty, Cabinet, CabinetPosition, PositionHistory
 from voting.models import Bill, Vote
 from parties.models import Party, PartyMembership, PartyRole, JoinRequest
+from npcs.models import NPCProfile
+from npcs.forms import NPCAdminForm
 
 
 @login_required
@@ -949,3 +951,50 @@ def mod_reject_join_request(request, request_id):
         messages.success(request, f"{join_request.user.username}'s request to join {join_request.party.name} has been rejected.")
 
     return redirect('moderator:party_dashboard')
+
+
+# ============================================================================
+# NPC MANAGEMENT
+# ============================================================================
+
+@login_required
+def npc_dashboard(request):
+    """List all NPCs for full admin editing."""
+    if not can_manage_parties(request.user):
+        messages.error(request, "You don't have permission to manage NPCs.")
+        return redirect('moderator:dashboard')
+
+    npcs = NPCProfile.objects.all().select_related('user_profile__user', 'party')
+
+    context = {
+        'npcs': npcs,
+    }
+    return render(request, 'npcs/dashboard.html', context)
+
+
+@login_required
+def mod_edit_npc(request, pk):
+    """Full admin editing of any NPC's persona and behavior tuning."""
+    if not can_manage_parties(request.user):
+        messages.error(request, "You don't have permission to manage NPCs.")
+        return redirect('moderator:dashboard')
+
+    npc = get_object_or_404(NPCProfile, pk=pk)
+
+    if request.method == 'POST':
+        form = NPCAdminForm(request.POST, instance=npc)
+        if form.is_valid():
+            npc_instance = form.save(commit=False)
+            if 'persona' in form.changed_data:
+                npc_instance.persona_manually_edited = True
+            npc_instance.save()
+            messages.success(request, 'NPC updated successfully!')
+            return redirect('moderator:npc_dashboard')
+    else:
+        form = NPCAdminForm(instance=npc)
+
+    context = {
+        'form': form,
+        'npc': npc,
+    }
+    return render(request, 'npcs/edit.html', context)
