@@ -29,6 +29,12 @@
                     {% if party.constitution_pdf %}Replace Constitution PDF{% else %}Upload Constitution PDF{% endif %} / Edit Party
                 </a>
                 {% endif %}
+
+                {% if can_edit_party and party.npc_profile %}
+                <a href="{% url 'npcs:edit' party.npc_profile.pk %}" class="btn btn-outline-secondary mt-3">
+                    Edit Party NPC
+                </a>
+                {% endif %}
             </div>
         </div>
 

@@ -12,4 +12,5 @@ urlpatterns = [
     path('press/', include('press.urls')),
     path('parties/', include('parties.urls')),
     path('chirps/', include('chirps.urls')),
+    path('npcs/', include('npcs.urls')),
 ]

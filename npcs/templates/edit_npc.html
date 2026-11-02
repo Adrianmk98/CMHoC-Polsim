@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit NPC - CMHoC{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3>Edit NPC: {{ npc.user_profile.user.username }}</h3>
+                {% if party %}<small>Party HQ for {{ party.name }}</small>{% endif %}
+            </div>
+            <div class="card-body">
+                {% if npc.persona_manually_edited %}
+                    <div class="alert alert-info">This persona has been manually edited and will no longer auto-update when the party platform changes.</div>
+                {% else %}
+                    <div class="alert alert-secondary">This persona is currently auto-generated from the party's platform. Saving changes here will lock in your custom text.</div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label">Persona *</label>
+                        {{ form.persona }}
+                        {% if form.persona.errors %}
+                            <div class="text-danger">{{ form.persona.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        {{ form.is_active }}
+                        <label class="form-check-label">Active</label>
+                        {% if form.is_active.errors %}
+                            <div class="text-danger">{{ form.is_active.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    {% if is_admin %}
+                    <div class="mb-3">
+                        <label class="form-label">Reply Chance (0-1)</label>
+                        {{ form.reply_chance }}
+                        {% if form.reply_chance.errors %}
+                            <div class="text-danger">{{ form.reply_chance.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Cooldown Minutes</label>
+                        {{ form.cooldown_minutes }}
+                        {% if form.cooldown_minutes.errors %}
+                            <div class="text-danger">{{ form.cooldown_minutes.errors }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg flex-grow-1">Save Changes</button>
+                        {% if party %}
+                        <a href="{% url 'parties:detail' party.pk %}" class="btn btn-secondary btn-lg">Cancel</a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
