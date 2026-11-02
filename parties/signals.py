@@ -116,6 +116,10 @@ def sync_party_npc_profile(sender, instance, created, **kwargs):
         )
     else:
         npc_profile = getattr(party, 'npc_profile', None)
-        if npc_profile is not None and npc_profile.persona != persona:
+        if (
+            npc_profile is not None
+            and not npc_profile.persona_manually_edited
+            and npc_profile.persona != persona
+        ):
             npc_profile.persona = persona
             npc_profile.save(update_fields=['persona'])
