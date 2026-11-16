@@ -181,10 +181,14 @@
             </thead>
             <tbody>
                 {% for entry in entries %}
-                <tr>
-                    <td><span class="badge bg-secondary">{{ entry.get_score_type_display }}</span></td>
+                <tr class="{% if entry.status == 'PENDING' %}table-warning{% endif %}">
+                    <td>
+                        <span class="badge bg-secondary">{{ entry.get_score_type_display }}</span>
+                        {% if entry.is_ai_generated %}<span class="badge bg-info text-dark">AI</span>{% endif %}
+                        {% if entry.status == 'PENDING' %}<span class="badge bg-warning text-dark">Pending</span>{% endif %}
+                    </td>
                     <td class="text-end">{{ entry.score }}</td>
-                    <td>{{ entry.description }}</td>
+                    <td>{{ entry.description }}{% if entry.ai_rationale %}<br><small class="text-muted">{{ entry.ai_rationale }}</small>{% endif %}</td>
                     <td>{% if entry.created_by %}{% include 'includes/avatar.html' with avatar_user=entry.created_by size=20 %} {{ entry.created_by.username }}{% else %}—{% endif %}</td>
                     <td><small class="text-muted">{{ entry.created_at|date:"M d, Y" }}</small></td>
                     <td>

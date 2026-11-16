@@ -17,6 +17,6 @@ class PlayerLTAdmin(admin.ModelAdmin):
 
 @admin.register(ScoreEntry)
 class ScoreEntryAdmin(admin.ModelAdmin):
-    list_display = ['user', 'session', 'score_type', 'score', 'description', 'created_by', 'created_at']
-    list_filter = ['session', 'score_type']
+    list_display = ['user', 'session', 'score_type', 'score', 'status', 'is_ai_generated', 'description', 'created_by', 'created_at']
+    list_filter = ['session', 'score_type', 'status', 'is_ai_generated']
     search_fields = ['user__username', 'description']

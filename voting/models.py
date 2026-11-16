@@ -58,6 +58,7 @@ class Bill(models.Model):
     title = models.CharField(max_length=300)
     short_title = models.CharField(max_length=150, blank=True)
     sponsor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='sponsored_bills')
+    seconder = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='seconded_bills')
     chamber = models.CharField(max_length=10, choices=CHAMBER_CHOICES, default='COMMONS')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
     
@@ -70,10 +71,25 @@ class Bill(models.Model):
     
     class Meta:
         ordering = ['-created_at']
-    
+
     def __str__(self):
         return f"{self.bill_number}: {self.title}"
-    
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        from moderator.permissions import is_sitting_member
+
+        if self.status == 'DRAFT':
+            return
+
+        if not self.seconder_id:
+            raise ValidationError({'seconder': 'A bill needs a seconder before it can go to a reading.'})
+        if self.seconder_id == self.sponsor_id:
+            raise ValidationError({'seconder': 'The seconder must be someone other than the sponsor.'})
+        if not is_sitting_member(self.seconder, self.chamber):
+            chamber_label = 'Senator' if self.chamber == 'SENATE' else 'MP'
+            raise ValidationError({'seconder': f'The seconder must be a sitting {chamber_label}.'})
+
     def current_vote(self):
         """Get the active vote for this bill"""
         return self.votes.filter(is_active=True).first()

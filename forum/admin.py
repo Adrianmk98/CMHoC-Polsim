@@ -8,17 +8,22 @@ class ProvinceAdmin(admin.ModelAdmin):
     
 @admin.register(Riding)
 class RidingAdmin(admin.ModelAdmin):
-    list_display = ['name', 'get_provinces', 'population', 'is_active', 'current_mp']
-    list_filter = ['provinces', 'is_active']
+    list_display = ['name', 'get_provinces', 'population', 'lean', 'is_active', 'current_mp']
+    list_filter = ['provinces', 'is_active', 'lean']
     search_fields = ['name', 'provinces__code']
+    autocomplete_fields = ['baseline_party']
     ordering = ['name']
-    
+
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'provinces', 'is_active')
         }),
         ('Details', {
             'fields': ('population', 'description')
+        }),
+        ('Election Baseline', {
+            'fields': ('baseline_party', 'baseline_vote_share', 'lean'),
+            'classes': ('collapse',),
         }),
     )
     

@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.models import User
 from .models import Bill, Vote, Ballot
 
 
@@ -6,9 +7,16 @@ BILL_PDF_MAX_SIZE = 20 * 1024 * 1024
 
 
 class BillForm(forms.ModelForm):
+    seconder = forms.ModelChoiceField(
+        queryset=User.objects.order_by('username'),
+        required=False,
+        help_text='Needed before the bill can move past Draft.',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
     class Meta:
         model = Bill
-        fields = ['bill_number', 'title', 'short_title', 'chamber', 'status', 'summary', 'full_text', 'pdf']
+        fields = ['bill_number', 'title', 'short_title', 'chamber', 'status', 'seconder', 'summary', 'full_text', 'pdf']
         widgets = {
             'bill_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., C-123 or S-45'}),
             'title': forms.TextInput(attrs={'class': 'form-control'}),

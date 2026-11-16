@@ -40,6 +40,11 @@ def _generate_reply(system_prompt, user_prompt):
     return ollama_client.generate_reply(system_prompt, user_prompt)
 
 
+def generate_text(system_prompt, user_prompt):
+    """Public entry point to the configured LLM backend, for non-NPC callers (e.g. AI grading)."""
+    return _generate_reply(system_prompt, user_prompt)
+
+
 def _npc_persona_header(npc_profile):
     user = npc_profile.user_profile.user
     party = npc_profile.user_profile.party
