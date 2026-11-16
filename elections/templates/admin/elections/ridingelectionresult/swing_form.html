@@ -1,0 +1,42 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h1>Pre-fill projected results from swing %</h1>
+<p>
+    Enter a percentage-point swing for each party. This is applied to each selected riding's
+    last known result (or its baseline lean, if no prior result exists) to compute a projected
+    vote count for each already-declared candidate. Nothing is finalized &mdash; review the votes
+    and set the winner yourself afterward.
+</p>
+
+<p><strong>Selected riding results:</strong></p>
+<ul>
+    {% for riding_result in riding_results %}
+        <li>{{ riding_result }}</li>
+    {% endfor %}
+</ul>
+
+<form method="post">
+    {% csrf_token %}
+    {% for riding_result in riding_results %}
+        <input type="hidden" name="{{ action_checkbox_name }}" value="{{ riding_result.pk }}">
+    {% endfor %}
+    <input type="hidden" name="action" value="prefill_projected_results">
+
+    <table>
+        <thead>
+            <tr><th>Party</th><th>Swing (percentage points, e.g. 4.5 or -3.0)</th></tr>
+        </thead>
+        <tbody>
+            {% for party in parties %}
+            <tr>
+                <td>{{ party }}</td>
+                <td><input type="number" step="0.1" name="swing_{{ party.id }}" value="0"></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <input type="submit" name="apply" value="Apply swing and pre-fill" class="default">
+</form>
+{% endblock %}

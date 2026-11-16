@@ -8,6 +8,15 @@
     <a href="{% url 'moderator:session_create' %}" class="btn btn-primary btn-sm">+ New Session</a>
 </div>
 
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link active" href="{% url 'moderator:scores_dashboard' %}{% if active_session %}?session={{ active_session.id }}{% endif %}">Polling Calculator</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'moderator:grading_queue' %}{% if active_session %}?session={{ active_session.id }}{% endif %}">Needs Grading</a>
+    </li>
+</ul>
+
 <!-- Session selector -->
 <div class="card mb-3">
     <div class="card-body d-flex align-items-center gap-2 flex-wrap py-2">

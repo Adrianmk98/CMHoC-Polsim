@@ -24,8 +24,19 @@ class Province(models.Model):
         ('YT', 'Yukon'),
     ]
     
+    REGION_CHOICES = [
+        ('ATLANTIC', 'Atlantic'),
+        ('QUEBEC', 'Quebec'),
+        ('ONTARIO', 'Ontario'),
+        ('PRAIRIES', 'Prairies'),
+        ('ALBERTA', 'Alberta'),
+        ('BC', 'British Columbia'),
+        ('TERRITORIES', 'Territories'),
+    ]
+
     code = models.CharField(max_length=2, choices=PROVINCE_CHOICES, unique=True)
-    
+    region = models.CharField(max_length=20, choices=REGION_CHOICES, null=True, blank=True)
+
     def __str__(self):
         return self.get_code_display()
 
@@ -37,6 +48,23 @@ class Riding(models.Model):
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    LEAN_CHOICES = [
+        ('SAFE', 'Safe'),
+        ('LIKELY', 'Likely'),
+        ('LEAN', 'Lean'),
+        ('TOSS_UP', 'Toss-up'),
+    ]
+    baseline_party = models.ForeignKey(
+        'PoliticalParty', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='baseline_ridings',
+        help_text="Party assumed to hold this riding's baseline lean, used by the swing calculator"
+    )
+    baseline_vote_share = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True,
+        help_text="Baseline party's vote share %% for projections"
+    )
+    lean = models.CharField(max_length=10, choices=LEAN_CHOICES, null=True, blank=True)
 
     class Meta:
         ordering = ['name']

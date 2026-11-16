@@ -772,6 +772,165 @@ def delete_score_entry(request, entry_id):
     messages.success(request, "Score entry deleted.")
     return redirect(f"{request.path.rsplit('/delete/', 1)[0].rsplit('/', 2)[0]}/player/{user_id}/?session={session_id}")
 
+
+@login_required
+def grading_queue(request):
+    """Moderator view of content that still needs a score, plus AI suggestions awaiting review."""
+    if not can_manage_scores(request.user):
+        messages.error(request, "You don't have permission to manage scores.")
+        return redirect('moderator:dashboard')
+
+    from scores.models import ParliamentSession, ScoreEntry
+    from voting.models import Bill, BillDebatePost
+    from press.models import PressRelease
+
+    sessions = ParliamentSession.objects.all()
+    session_id = request.GET.get('session')
+    active_session = (
+        ParliamentSession.objects.filter(pk=session_id).first()
+        if session_id else
+        ParliamentSession.objects.filter(is_active=True).first()
+    )
+
+    scored_debate_ids = set(
+        ScoreEntry.objects.filter(score_type='DEBATE', debate_post_id__isnull=False)
+        .values_list('debate_post_id', flat=True)
+    )
+    scored_press_ids = set(
+        ScoreEntry.objects.filter(score_type='PRESS', press_release_id__isnull=False)
+        .values_list('press_release_id', flat=True)
+    )
+    scored_bill_ids = set(
+        ScoreEntry.objects.filter(score_type='LEGISLATION', bill_id__isnull=False)
+        .values_list('bill_id', flat=True)
+    )
+
+    ungraded_debate_posts = (
+        BillDebatePost.objects.select_related('bill', 'author')
+        .exclude(id__in=scored_debate_ids)
+        .order_by('-created_at')[:50]
+    )
+    ungraded_press_releases = (
+        PressRelease.objects.filter(is_published=True).select_related('author')
+        .exclude(id__in=scored_press_ids)
+        .order_by('-published_at')[:50]
+    )
+    ungraded_bills = (
+        Bill.objects.exclude(status='DRAFT').select_related('sponsor')
+        .exclude(id__in=scored_bill_ids)
+        .order_by('-created_at')[:50]
+    )
+
+    pending_entries = []
+    if active_session:
+        pending_entries = list(
+            ScoreEntry.objects.filter(session=active_session, status='PENDING')
+            .select_related('user').order_by('-created_at')
+        )
+
+    context = {
+        'sessions': sessions,
+        'active_session': active_session,
+        'ungraded_debate_posts': ungraded_debate_posts,
+        'ungraded_press_releases': ungraded_press_releases,
+        'ungraded_bills': ungraded_bills,
+        'pending_entries': pending_entries,
+    }
+    return render(request, 'scores/queue.html', context)
+
+
+@login_required
+def ai_suggest_score(request):
+    """Have the AI suggest a score for one ungraded content item, saved as a PENDING entry for review."""
+    if not can_manage_scores(request.user):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=400)
+
+    from decimal import Decimal
+    from scores.models import ParliamentSession, ScoreEntry
+    from scores import ai_grading
+
+    session_id = request.POST.get('session_id')
+    active_session = get_object_or_404(ParliamentSession, pk=session_id)
+    content_type = request.POST.get('content_type')
+    object_id = request.POST.get('object_id')
+    next_url = request.POST.get('next', 'moderator:dashboard')
+
+    if content_type == 'debate':
+        from voting.models import BillDebatePost
+        obj = get_object_or_404(BillDebatePost, pk=object_id)
+        suggestion = ai_grading.suggest_debate_score(obj)
+        link_field, link_value, target_user = 'debate_post_id', obj.id, obj.author
+        description = f"AI suggestion: debate post on {obj.bill.bill_number}"
+    elif content_type == 'press':
+        from press.models import PressRelease
+        obj = get_object_or_404(PressRelease, pk=object_id)
+        suggestion = ai_grading.suggest_press_score(obj)
+        link_field, link_value, target_user = 'press_release_id', obj.id, obj.author
+        description = f"AI suggestion: press release \"{obj.title}\""
+    elif content_type == 'legislation':
+        from voting.models import Bill
+        obj = get_object_or_404(Bill, pk=object_id)
+        suggestion = ai_grading.suggest_legislation_score(obj)
+        link_field, link_value, target_user = 'bill_id', obj.id, obj.sponsor
+        description = f"AI suggestion: bill {obj.bill_number}"
+    else:
+        messages.error(request, "Unknown content type.")
+        return redirect(next_url)
+
+    if not target_user:
+        messages.error(request, "This item has no author/sponsor to score.")
+        return redirect(next_url)
+
+    if suggestion is None:
+        messages.error(request, "AI grading is unavailable right now (LLM backend didn't respond). Try again later.")
+        return redirect(next_url)
+
+    score_type_by_content = {'debate': 'DEBATE', 'press': 'PRESS', 'legislation': 'LEGISLATION'}
+    ScoreEntry.objects.update_or_create(
+        session=active_session,
+        score_type=score_type_by_content[content_type],
+        **{link_field: link_value},
+        defaults={
+            'user': target_user,
+            'score': Decimal(str(suggestion['score'])),
+            'description': description,
+            'status': 'PENDING',
+            'is_ai_generated': True,
+            'ai_rationale': suggestion['rationale'],
+            'created_by': request.user,
+        },
+    )
+    messages.success(request, f"AI suggested a score of {suggestion['score']} for {target_user.username}. Review it below.")
+    return redirect(next_url)
+
+
+@login_required
+def approve_score_entry(request, entry_id):
+    """Approve a pending (usually AI-suggested) score entry, optionally overriding the score first."""
+    if not can_manage_scores(request.user):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=400)
+
+    from decimal import Decimal, InvalidOperation
+    from scores.models import ScoreEntry
+
+    entry = get_object_or_404(ScoreEntry, pk=entry_id)
+
+    try:
+        entry.score = Decimal(request.POST.get('score', str(entry.score)))
+    except InvalidOperation:
+        messages.error(request, "Invalid score value.")
+        return redirect(request.POST.get('next', '/'))
+
+    entry.description = request.POST.get('description', entry.description)
+    entry.status = 'APPROVED'
+    entry.save()
+    messages.success(request, f"Score approved for {entry.user.username}.")
+    return redirect(request.POST.get('next', '/'))
+
 # ============================================================================
 # PARTY MANAGEMENT
 # ============================================================================

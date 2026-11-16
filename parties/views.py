@@ -387,7 +387,11 @@ def close_election(request, pk):
     if not (request.user.is_staff or election.party.can_user_manage(request.user)):
         messages.error(request, 'Only party leadership can close elections.')
         return redirect('parties:election_detail', pk=pk)
-    
+
+    if not request.user.is_staff and timezone.now() < election.closes_at:
+        messages.error(request, 'This election is still open. Only a moderator can close it early.')
+        return redirect('parties:election_detail', pk=pk)
+
     election.calculate_results()
     messages.success(request, f'Election closed. {election.winner.username} is the new party leader!')
     
@@ -488,7 +492,15 @@ def close_confidence_vote(request, pk):
     if not (request.user.is_staff or confidence_vote.party.can_user_manage(request.user)):
         messages.error(request, 'Only party leadership can close confidence votes.')
         return redirect('parties:confidence_vote_detail', pk=pk)
-    
+
+    if not request.user.is_staff:
+        if request.user == confidence_vote.target_leader:
+            messages.error(request, 'You cannot close a confidence vote against yourself.')
+            return redirect('parties:confidence_vote_detail', pk=pk)
+        if timezone.now() < confidence_vote.closes_at:
+            messages.error(request, 'This vote is still open. Only a moderator can close it early.')
+            return redirect('parties:confidence_vote_detail', pk=pk)
+
     confidence_vote.calculate_results()
     
     if confidence_vote.result == 'PASSED':

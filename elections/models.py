@@ -1,6 +1,9 @@
+from decimal import Decimal
+
 from django.db import models
 from django.contrib.auth.models import User
-from forum.models import Riding, UserProfile, PoliticalParty
+from django.utils import timezone
+from forum.models import Riding, UserProfile, PoliticalParty, Province
 
 
 class Election(models.Model):
@@ -15,10 +18,22 @@ class Election(models.Model):
     election_date = models.DateField()
     description = models.TextField(blank=True)
     is_completed = models.BooleanField(default=False)
-    
+
+    # Campaign timeline (all optional - an election with none set still works)
+    nomination_deadline = models.DateField(null=True, blank=True)
+    writ_date = models.DateField(null=True, blank=True)
+    campaign_start_date = models.DateField(null=True, blank=True)
+    results_certified_date = models.DateField(null=True, blank=True)
+
     # For by-elections only - which riding
     riding = models.ForeignKey(Riding, on_delete=models.SET_NULL, null=True, blank=True, related_name='byelections')
-    
+
+    # Polling simulation pipeline (see elections/polling.py)
+    uses_list_seats = models.BooleanField(
+        default=False,
+        help_text="Whether this election awards proportional regional list seats on top of riding seats."
+    )
+
     # Summary statistics (auto-calculated or manually set)
     total_seats = models.IntegerField(default=0)
     total_votes_cast = models.IntegerField(default=0)
@@ -39,7 +54,45 @@ class Election(models.Model):
     
     def is_by_election(self):
         return self.election_type == 'BY_ELECTION'
-    
+
+    PHASE_PRE_WRIT = 'PRE_WRIT'
+    PHASE_NOMINATIONS = 'NOMINATIONS'
+    PHASE_CAMPAIGN = 'CAMPAIGN'
+    PHASE_VOTING = 'VOTING'
+    PHASE_CLOSED = 'CLOSED'
+
+    PHASE_LABELS = {
+        PHASE_PRE_WRIT: 'Pre-Writ',
+        PHASE_NOMINATIONS: 'Nominations Open',
+        PHASE_CAMPAIGN: 'Campaign Period',
+        PHASE_VOTING: 'Voting Day',
+        PHASE_CLOSED: 'Closed',
+    }
+
+    @property
+    def phase(self):
+        """Where this election currently sits in its lifecycle, based on its timeline dates."""
+        today = timezone.now().date()
+
+        if self.is_completed or (self.results_certified_date and today >= self.results_certified_date):
+            return self.PHASE_CLOSED
+        if today >= self.election_date:
+            return self.PHASE_VOTING if today == self.election_date else self.PHASE_CLOSED
+        if self.campaign_start_date and today >= self.campaign_start_date:
+            return self.PHASE_CAMPAIGN
+        if self.writ_date and today >= self.writ_date:
+            return self.PHASE_NOMINATIONS
+        return self.PHASE_PRE_WRIT
+
+    def get_phase_display(self):
+        return self.PHASE_LABELS[self.phase]
+
+    def is_nomination_open(self):
+        return self.phase == self.PHASE_NOMINATIONS
+
+    def is_campaign_active(self):
+        return self.phase == self.PHASE_CAMPAIGN
+
     def get_results(self):
         """Get all riding results for this election"""
         return self.riding_results.all().select_related('riding', 'winner', 'winner__party')
@@ -79,6 +132,33 @@ class Election(models.Model):
         if totals:
             return totals[0]
         return None
+
+    def total_seats_with_list(self):
+        """Seat totals per party, riding (FPTP) seats plus list seats if this election uses them."""
+        totals = self.calculate_seat_totals()
+        if not self.uses_list_seats:
+            return totals
+
+        by_party_name = {row['party_name']: row for row in totals}
+        for list_seat in self.list_seats.select_related('party'):
+            if list_seat.seats_won <= 0:
+                continue
+            party_name = list_seat.party.get_name_display() if list_seat.party else "Independent"
+            row = by_party_name.get(party_name)
+            if row is None:
+                row = {
+                    'party': list_seat.party,
+                    'party_name': party_name,
+                    'party_color': list_seat.party.color if list_seat.party else '#808080',
+                    'seats': 0,
+                    'votes': 0,
+                }
+                by_party_name[party_name] = row
+                totals.append(row)
+            row['seats'] += list_seat.seats_won
+
+        totals.sort(key=lambda row: row['seats'], reverse=True)
+        return totals
     
     def calculate_totals(self):
         """Calculate and update election totals"""
@@ -206,3 +286,106 @@ class CandidateResult(models.Model):
             old_percentage = (self.votes_previous / self.riding_result.total_votes_cast) * 100
             return self.vote_percentage - old_percentage if self.vote_percentage else None
         return None
+
+
+class PartyModifier(models.Model):
+    """Per-party, per-election inputs to the national polling calculation.
+
+    `personal_mods_total` is auto-filled by polling.compute_party_modifiers() from the scores
+    app. The rest are mod-entered, same as the source spreadsheet's Platform/Press/Attack
+    Press/Gov-OO-C&S/Modifier Transfer columns.
+    """
+    election = models.ForeignKey(Election, on_delete=models.CASCADE, related_name='party_modifiers')
+    party = models.ForeignKey(PoliticalParty, on_delete=models.CASCADE, related_name='party_modifiers')
+
+    personal_mods_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
+    platform_score = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
+    press_score = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
+    attack_press_score = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
+    gov_bonus = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
+    modifier_transfer = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('0'),
+        help_text="Net modifier transferred in (positive) or out (negative), e.g. coalition arrangements."
+    )
+
+    class Meta:
+        unique_together = ['election', 'party']
+        ordering = ['-personal_mods_total']
+
+    def __str__(self):
+        return f"{self.party.get_name_display()} modifier - {self.election.name}"
+
+    @property
+    def total_modifier(self):
+        return (
+            self.personal_mods_total + self.platform_score + self.press_score +
+            self.attack_press_score + self.gov_bonus + self.modifier_transfer
+        )
+
+
+class NationalPoll(models.Model):
+    """One party's national polling result for an election, including the random 'fuzz' step."""
+    election = models.ForeignKey(Election, on_delete=models.CASCADE, related_name='national_polls')
+    party = models.ForeignKey(PoliticalParty, on_delete=models.CASCADE, related_name='national_polls')
+
+    true_polling_pct = models.DecimalField(max_digits=8, decimal_places=6)
+    random_number = models.DecimalField(max_digits=8, decimal_places=6)
+    max_variance = models.DecimalField(max_digits=8, decimal_places=6)
+    actual_variance = models.DecimalField(max_digits=8, decimal_places=6)
+    fuzzed_pct = models.DecimalField(max_digits=8, decimal_places=6)
+    corrected_pct = models.DecimalField(max_digits=8, decimal_places=6)
+
+    class Meta:
+        unique_together = ['election', 'party']
+        ordering = ['-corrected_pct']
+
+    def __str__(self):
+        return f"{self.party.get_name_display()} - {self.corrected_pct * 100:.1f}% ({self.election.name})"
+
+
+class RegionalPoll(models.Model):
+    """A party's polling % within one region, for one election."""
+    election = models.ForeignKey(Election, on_delete=models.CASCADE, related_name='regional_polls')
+    party = models.ForeignKey(PoliticalParty, on_delete=models.CASCADE, related_name='regional_polls')
+    region = models.CharField(max_length=20, choices=Province.REGION_CHOICES)
+
+    regional_pct = models.DecimalField(max_digits=8, decimal_places=6)
+
+    class Meta:
+        unique_together = ['election', 'party', 'region']
+        ordering = ['region', '-regional_pct']
+
+    def __str__(self):
+        return f"{self.party.get_name_display()} - {self.get_region_display()} ({self.election.name})"
+
+
+class ElectionRegionSeats(models.Model):
+    """How many proportional list seats a region awards for an election. Only meaningful when
+    election.uses_list_seats is True."""
+    election = models.ForeignKey(Election, on_delete=models.CASCADE, related_name='region_seat_configs')
+    region = models.CharField(max_length=20, choices=Province.REGION_CHOICES)
+    list_seats = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ['election', 'region']
+        ordering = ['region']
+
+    def __str__(self):
+        return f"{self.get_region_display()} - {self.list_seats} list seats ({self.election.name})"
+
+
+class RegionalListSeat(models.Model):
+    """A party's proportional list seats won in one region, from polling.allocate_list_seats()."""
+    election = models.ForeignKey(Election, on_delete=models.CASCADE, related_name='list_seats')
+    party = models.ForeignKey(PoliticalParty, on_delete=models.CASCADE, related_name='list_seats')
+    region = models.CharField(max_length=20, choices=Province.REGION_CHOICES)
+
+    list_votes = models.IntegerField(default=0)
+    seats_won = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ['election', 'party', 'region']
+        ordering = ['region', '-seats_won']
+
+    def __str__(self):
+        return f"{self.party.get_name_display()} - {self.seats_won} list seat(s) in {self.get_region_display()}"

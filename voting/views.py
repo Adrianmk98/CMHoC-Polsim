@@ -43,10 +43,18 @@ def bill_list(request):
 
 def bill_detail(request, bill_id):
     """View bill details and vote"""
-    from moderator.permissions import can_manage_bills
+    from moderator.permissions import can_manage_bills, is_sitting_member
 
     bill = get_object_or_404(Bill.objects.select_related('sponsor', 'sponsor__profile__party'), pk=bill_id)
     current_vote = bill.current_vote()
+
+    can_second_bill = (
+        bill.status == 'DRAFT'
+        and not bill.seconder
+        and request.user.is_authenticated
+        and request.user != bill.sponsor
+        and is_sitting_member(request.user, bill.chamber)
+    )
 
     user_ballot = None
     if request.user.is_authenticated and current_vote:
@@ -64,6 +72,7 @@ def bill_detail(request, bill_id):
         'debate_posts': bill.debate_posts.all().select_related('author', 'author__profile__party'),
         'active_stages': Bill.STATUS_CHOICES,
         'can_edit_bill': request.user == bill.sponsor or can_manage_bills(request.user),
+        'can_second_bill': can_second_bill,
     }
     return render(request, 'bill_detail.html', context)
 
@@ -92,12 +101,19 @@ def add_debate_post(request, bill_id):
 @login_required
 def cast_vote(request, vote_id):
     """Cast a vote on an open vote session"""
+    from moderator.permissions import can_manage_bills, is_sitting_member
+
     vote_session = get_object_or_404(Vote, pk=vote_id)
-    
+
     if not vote_session.is_open():
         messages.error(request, 'This vote is closed.')
         return redirect('voting:bill_detail', bill_id=vote_session.bill.id)
-    
+
+    if not (is_sitting_member(request.user, vote_session.bill.chamber) or can_manage_bills(request.user)):
+        chamber_label = 'Senators' if vote_session.bill.chamber == 'SENATE' else 'MPs'
+        messages.error(request, f'Only sitting {chamber_label} can vote on this bill.')
+        return redirect('voting:bill_detail', bill_id=vote_session.bill.id)
+
     # Check if already voted
     existing = Ballot.objects.filter(
         vote_session=vote_session,
@@ -150,12 +166,18 @@ def vote_results(request, vote_id):
 
 @login_required
 def create_bill(request):
-    """Create a new bill"""
+    """Create a new bill. Anyone can author a bill, but it starts life as a
+    Draft unless the author is a sitting member (or moderator) who can push
+    it straight to a reading."""
+    from moderator.permissions import can_manage_bills, is_sitting_member
+
     if request.method == 'POST':
         form = BillForm(request.POST, request.FILES)
         if form.is_valid():
             bill = form.save(commit=False)
             bill.sponsor = request.user
+            if bill.status != 'DRAFT' and not (can_manage_bills(request.user) or is_sitting_member(request.user, bill.chamber)):
+                bill.status = 'DRAFT'
             bill.save()
 
             # Update player history
@@ -172,18 +194,67 @@ def create_bill(request):
 
 
 @login_required
+def second_bill(request, bill_id):
+    """Let a sitting member mark themselves as a bill's seconder while it's
+    still in Draft (or withdraw their own seconding)."""
+    from moderator.permissions import is_sitting_member
+
+    bill = get_object_or_404(Bill, pk=bill_id)
+
+    if request.method != 'POST':
+        return redirect('voting:bill_detail', bill_id=bill.id)
+
+    if bill.status != 'DRAFT':
+        messages.error(request, 'A bill can only be seconded while it is in Draft.')
+        return redirect('voting:bill_detail', bill_id=bill.id)
+
+    if bill.seconder_id == request.user.id:
+        bill.seconder = None
+        bill.save(update_fields=['seconder'])
+        messages.success(request, 'You withdrew your seconding of this bill.')
+        return redirect('voting:bill_detail', bill_id=bill.id)
+
+    if bill.seconder_id:
+        messages.error(request, 'This bill already has a seconder.')
+        return redirect('voting:bill_detail', bill_id=bill.id)
+
+    if request.user == bill.sponsor:
+        messages.error(request, "You can't second your own bill.")
+        return redirect('voting:bill_detail', bill_id=bill.id)
+
+    if not is_sitting_member(request.user, bill.chamber):
+        chamber_label = 'Senator' if bill.chamber == 'SENATE' else 'MP'
+        messages.error(request, f'Only a sitting {chamber_label} can second this bill.')
+        return redirect('voting:bill_detail', bill_id=bill.id)
+
+    bill.seconder = request.user
+    bill.save(update_fields=['seconder'])
+    messages.success(request, 'You are now seconding this bill.')
+    return redirect('voting:bill_detail', bill_id=bill.id)
+
+
+@login_required
 def edit_bill(request, bill_id):
-    """Edit a bill - sponsor or a moderator with bill-management rights only"""
-    from moderator.permissions import can_manage_bills
+    """Edit a bill - sponsor or a moderator with bill-management rights only.
+    Anyone can author/edit the text, but only a sitting member of the chamber
+    (or a moderator) can move the bill to a new stage."""
+    from moderator.permissions import can_manage_bills, is_sitting_member
 
     bill = get_object_or_404(Bill, pk=bill_id)
     if not (request.user == bill.sponsor or can_manage_bills(request.user)):
         messages.error(request, "You don't have permission to edit this bill.")
         return redirect('voting:bill_detail', bill_id=bill.id)
 
+    can_advance_stage = can_manage_bills(request.user) or is_sitting_member(request.user, bill.chamber)
+    original_status = bill.status
+
     if request.method == 'POST':
         form = BillForm(request.POST, request.FILES, instance=bill)
         if form.is_valid():
+            if bill.status != original_status and not can_advance_stage:
+                bill.status = original_status
+                messages.error(request, 'Only a sitting member of this chamber can move a bill to a new stage.')
+                return render(request, 'edit_bill.html', {'form': form, 'bill': bill})
             form.save()
             messages.success(request, f'Bill {bill.bill_number} updated successfully!')
             return redirect('voting:bill_detail', bill_id=bill.id)
@@ -197,8 +268,18 @@ def edit_bill(request, bill_id):
 @login_required
 def create_vote(request, bill_id):
     """Create a vote session for a bill (admin/speaker only)"""
+    from moderator.permissions import can_manage_bills, is_speaker
+
     bill = get_object_or_404(Bill, pk=bill_id)
-    
+
+    if not (can_manage_bills(request.user) or is_speaker(request.user)):
+        messages.error(request, 'Only the Speaker or a bill moderator can open a vote session.')
+        return redirect('voting:bill_detail', bill_id=bill.id)
+
+    if not bill.seconder:
+        messages.error(request, 'This bill needs a seconder before a vote can be opened.')
+        return redirect('voting:bill_detail', bill_id=bill.id)
+
     if request.method == 'POST':
         form = VoteForm(request.POST)
         if form.is_valid():

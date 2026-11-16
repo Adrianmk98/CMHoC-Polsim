@@ -49,4 +49,7 @@ urlpatterns = [
     path('scores/player/<int:user_id>/lt/', views.update_lt, name='update_lt'),
     path('scores/player/<int:user_id>/add/', views.add_score_entry, name='add_score_entry'),
     path('scores/entry/<int:entry_id>/delete/', views.delete_score_entry, name='delete_score_entry'),
+    path('scores/queue/', views.grading_queue, name='grading_queue'),
+    path('scores/queue/suggest/', views.ai_suggest_score, name='ai_suggest_score'),
+    path('scores/entry/<int:entry_id>/approve/', views.approve_score_entry, name='approve_score_entry'),
 ]

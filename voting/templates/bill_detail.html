@@ -43,7 +43,31 @@
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <strong>Status:</strong> 
+                        <strong>Seconder:</strong>
+                        {% if bill.seconder %}
+                            {% include 'includes/avatar.html' with avatar_user=bill.seconder size=24 %}
+                            {{ bill.seconder.username }}
+                        {% else %}
+                            <span class="text-muted">None yet</span>
+                        {% endif %}
+                        {% if bill.status == 'DRAFT' and user.is_authenticated %}
+                            {% if user == bill.seconder %}
+                                <form method="post" action="{% url 'voting:second_bill' bill.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary ms-2">Withdraw seconding</button>
+                                </form>
+                            {% elif can_second_bill %}
+                                <form method="post" action="{% url 'voting:second_bill' bill.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-primary ms-2">Second this bill</button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Status:</strong>
                         {% if bill.status == 'ROYAL_ASSENT' %}
                             <span class="badge bg-success">✓ {{ bill.get_status_display }}</span>
                         {% elif bill.status == 'FAILED' %}

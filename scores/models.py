@@ -66,16 +66,27 @@ class ScoreEntry(models.Model):
         ('CAMPAIGN', 'Campaign'),
     ]
 
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Review'),
+        ('APPROVED', 'Approved'),
+    ]
+
     session = models.ForeignKey(ParliamentSession, on_delete=models.CASCADE, related_name='score_entries')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='score_entries')
     score_type = models.CharField(max_length=20, choices=SCORE_TYPES)
     score = models.DecimalField(max_digits=8, decimal_places=2)
     description = models.CharField(max_length=300, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='APPROVED')
 
     # Optional links to specific content
     bill_id = models.IntegerField(null=True, blank=True)
     press_release_id = models.IntegerField(null=True, blank=True)
     thread_id = models.IntegerField(null=True, blank=True)
+    debate_post_id = models.IntegerField(null=True, blank=True)
+
+    # AI-assisted grading
+    is_ai_generated = models.BooleanField(default=False)
+    ai_rationale = models.TextField(blank=True)
 
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='score_entries_created')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -102,7 +113,7 @@ def get_player_totals(session, user):
     """Return a dict of score totals for a user in a session."""
     from django.db.models import Sum
 
-    entries = ScoreEntry.objects.filter(session=session, user=user)
+    entries = ScoreEntry.objects.filter(session=session, user=user, status='APPROVED')
     totals = {
         'debate': entries.filter(score_type='DEBATE').aggregate(s=Sum('score'))['s'] or Decimal('0'),
         'press': entries.filter(score_type='PRESS').aggregate(s=Sum('score'))['s'] or Decimal('0'),

@@ -1,10 +1,15 @@
 version: '3.8'
 
 services:
-  cloud-sql-proxy:
-    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest
-    container_name: cmhoc_cloud_sql_proxy
-    command: --address 0.0.0.0 --port 5432 ${CLOUD_SQL_CONNECTION_NAME}
+  db:
+    image: postgres:15-alpine
+    container_name: cmhoc_db
+    environment:
+      - POSTGRES_DB=cmhoc_polsim_db
+      - POSTGRES_USER=polsim_user
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     networks:
       - cmhoc_network
@@ -13,6 +18,8 @@ services:
     build: .
     container_name: cmhoc_web
     command: gunicorn CMHoC_Polsim.wsgi:application --bind 0.0.0.0:8000 --workers 4
+    ports:
+      - "8000:8000"
     volumes:
       - static_volume:/app/staticfiles
     env_file:
@@ -20,10 +27,10 @@ services:
     environment:
       - DB_NAME=cmhoc_polsim_db
       - DB_USER=polsim_user
-      - DB_HOST=cloud-sql-proxy
+      - DB_HOST=db
       - DB_PORT=5432
     depends_on:
-      - cloud-sql-proxy
+      - db
     restart: unless-stopped
     networks:
       - cmhoc_network
@@ -52,6 +59,7 @@ services:
 
 volumes:
   static_volume:
+  postgres_data:
 
 networks:
   cmhoc_network:
