@@ -15,7 +15,7 @@ services:
       - cmhoc_network
 
   web:
-    build: .
+    image: ghcr.io/adrianmk98/cmhoc-polsim:latest
     container_name: cmhoc_web
     command: gunicorn CMHoC_Polsim.wsgi:application --bind 0.0.0.0:8000 --workers 4
     ports:
