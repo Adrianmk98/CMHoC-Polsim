@@ -33,6 +33,8 @@ urlpatterns = [
 
     # Bill management
     path('bills/', views.bill_dashboard, name='bill_dashboard'),
+    path('bills/vote/<int:vote_id>/force-close/', views.mod_force_close_vote, name='mod_force_close_vote'),
+    path('bills/ballot/<int:ballot_id>/delete/', views.mod_delete_ballot, name='mod_delete_ballot'),
 
     # Party management
     path('parties/', views.party_dashboard, name='party_dashboard'),
@@ -57,4 +59,17 @@ urlpatterns = [
     path('scores/queue/', views.grading_queue, name='grading_queue'),
     path('scores/queue/suggest/', views.ai_suggest_score, name='ai_suggest_score'),
     path('scores/entry/<int:entry_id>/approve/', views.approve_score_entry, name='approve_score_entry'),
+
+    # Position history management (Speaker, Whip, House Leader, Critic, committee roles, etc.)
+    path('positions/', views.position_dashboard, name='position_dashboard'),
+    path('positions/add/', views.mod_add_position_history, name='mod_add_position_history'),
+    path('positions/<int:position_id>/edit/', views.mod_edit_position_history, name='mod_edit_position_history'),
+    path('positions/<int:position_id>/end/', views.mod_end_position_history, name='mod_end_position_history'),
+
+    # User management
+    path('users/', views.user_dashboard, name='user_dashboard'),
+    path('users/<int:profile_id>/edit/', views.mod_edit_user_profile, name='mod_edit_user_profile'),
+
+    # Audit log
+    path('audit/', views.audit_log, name='audit_log'),
 ]

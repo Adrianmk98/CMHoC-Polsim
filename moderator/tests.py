@@ -5,7 +5,8 @@ from django.test import TestCase
 from django.urls import reverse
 
 from elections.models import CandidateResult, Election, NationalPoll, RidingElectionResult
-from forum.models import PoliticalParty, Riding
+from forum.models import PoliticalParty, PositionHistory, Riding, UserProfile
+from moderator.models import AuditLog, ModeratorProfile
 
 
 class CreateElectionSeedsRidingResultsTests(TestCase):
@@ -86,3 +87,52 @@ class PollingWizardViewsTests(TestCase):
         response = self.client.get(reverse('moderator:add_results', args=[self.election.id]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Wizard Riding')
+
+
+class ModeratorProfilePermissionTests(TestCase):
+    """The granular ModeratorProfile permission system should actually gate access
+    (previously it was dead code: the fields didn't exist on any model)."""
+
+    def setUp(self):
+        self.target = User.objects.create_user(username='target', password='x')
+        self.profile, _ = UserProfile.objects.get_or_create(user=self.target)
+
+    def test_non_staff_user_without_moderator_profile_is_denied(self):
+        plain = User.objects.create_user(username='plain', password='x')
+        self.client.force_login(plain)
+        response = self.client.get(reverse('moderator:position_dashboard'))
+        self.assertRedirects(response, reverse('moderator:dashboard'), fetch_redirect_response=False)
+
+    def test_mod_with_can_manage_users_can_access_position_dashboard(self):
+        mod_user = User.objects.create_user(username='position_mod', password='x')
+        ModeratorProfile.objects.create(user=mod_user, is_moderator=True, can_manage_users=True)
+        self.client.force_login(mod_user)
+        response = self.client.get(reverse('moderator:position_dashboard'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_mod_without_can_manage_users_is_denied_position_dashboard(self):
+        mod_user = User.objects.create_user(username='cabinet_only_mod', password='x')
+        ModeratorProfile.objects.create(user=mod_user, is_moderator=True, can_manage_cabinet=True)
+        self.client.force_login(mod_user)
+        response = self.client.get(reverse('moderator:position_dashboard'))
+        self.assertRedirects(response, reverse('moderator:dashboard'))
+
+    def test_adding_a_position_history_record_is_audit_logged(self):
+        mod_user = User.objects.create_user(username='position_mod2', password='x')
+        ModeratorProfile.objects.create(user=mod_user, is_moderator=True, can_manage_users=True)
+        self.client.force_login(mod_user)
+
+        response = self.client.post(reverse('moderator:mod_add_position_history'), {
+            'user_profile': self.profile.id,
+            'position_type': 'SPEAKER',
+            'position_title': 'Speaker of the House',
+            'start_date': '2026-01-01',
+        })
+        self.assertRedirects(response, reverse('moderator:position_dashboard'))
+        self.assertTrue(
+            PositionHistory.objects.filter(user_profile=self.profile, position_type='SPEAKER').exists()
+        )
+
+        entry = AuditLog.objects.filter(target_type='PositionHistory', action='create').latest('timestamp')
+        self.assertEqual(entry.actor, mod_user)
+        self.assertEqual(entry.view_name, 'mod_add_position_history')

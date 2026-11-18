@@ -264,17 +264,18 @@ def cabinet_position_history(request, portfolio):
 def manage_cabinet(request):
     """Cabinet management page for Prime Minister"""
     from .models import Cabinet, CabinetPosition
-    
+    from moderator.permissions import can_manage_cabinet
+
     # Check if user is current PM
     current_cabinet = Cabinet.objects.filter(is_current=True).first()
-    
+
     if not current_cabinet:
         messages.error(request, "No current cabinet exists.")
         return redirect('cabinet_list')
-    
-    # Check if user is the PM of current cabinet
-    if request.user != current_cabinet.prime_minister:
-        messages.error(request, "Only the Prime Minister can manage the cabinet.")
+
+    # Check if user is the PM of current cabinet, or a moderator with cabinet permission
+    if request.user != current_cabinet.prime_minister and not can_manage_cabinet(request.user):
+        messages.error(request, "Only the Prime Minister (or a moderator) can manage the cabinet.")
         return redirect('cabinet_list')
     
     current_positions = current_cabinet.positions.filter(
@@ -293,11 +294,13 @@ def add_cabinet_position(request):
     """Add a new cabinet position"""
     from .models import Cabinet, CabinetPosition, UserProfile
     from django import forms
-    
+    from moderator.permissions import can_manage_cabinet
+    from moderator.audit import log_action
+
     current_cabinet = Cabinet.objects.filter(is_current=True).first()
-    
-    if not current_cabinet or request.user != current_cabinet.prime_minister:
-        messages.error(request, "Only the Prime Minister can add cabinet positions.")
+
+    if not current_cabinet or (request.user != current_cabinet.prime_minister and not can_manage_cabinet(request.user)):
+        messages.error(request, "Only the Prime Minister (or a moderator) can add cabinet positions.")
         return redirect('cabinet_list')
     
     class CabinetPositionForm(forms.Form):
@@ -340,7 +343,7 @@ def add_cabinet_position(request):
     if request.method == 'POST':
         form = CabinetPositionForm(request.POST)
         if form.is_valid():
-            CabinetPosition.objects.create(
+            position = CabinetPosition.objects.create(
                 cabinet=current_cabinet,
                 user_profile=form.cleaned_data['user'],
                 position_type=form.cleaned_data['position_type'],
@@ -350,6 +353,7 @@ def add_cabinet_position(request):
                 start_date=form.cleaned_data['start_date'],
                 notes=form.cleaned_data['notes']
             )
+            log_action(request.user, 'create', position, view_name='add_cabinet_position')
             messages.success(request, f"Added {form.cleaned_data['title']} to cabinet.")
             return redirect('manage_cabinet')
     else:
@@ -366,22 +370,25 @@ def add_cabinet_position(request):
 def remove_cabinet_position(request, position_id):
     """Remove a cabinet position (set end date)"""
     from .models import Cabinet, CabinetPosition
-    
+    from moderator.permissions import can_manage_cabinet
+    from moderator.audit import log_action
+
     position = get_object_or_404(CabinetPosition, pk=position_id)
     current_cabinet = Cabinet.objects.filter(is_current=True).first()
-    
-    if not current_cabinet or request.user != current_cabinet.prime_minister:
-        messages.error(request, "Only the Prime Minister can remove cabinet positions.")
+
+    if not current_cabinet or (request.user != current_cabinet.prime_minister and not can_manage_cabinet(request.user)):
+        messages.error(request, "Only the Prime Minister (or a moderator) can remove cabinet positions.")
         return redirect('cabinet_list')
-    
+
     if position.cabinet != current_cabinet:
         messages.error(request, "Cannot remove positions from past cabinets.")
         return redirect('cabinet_list')
-    
+
     if request.method == 'POST':
         end_date = request.POST.get('end_date')
         position.end_date = end_date if end_date else timezone.now().date()
         position.save()
+        log_action(request.user, 'end', position, changes={'end_date': [None, str(position.end_date)]}, view_name='remove_cabinet_position')
         messages.success(request, f"Removed {position.title} from cabinet.")
         return redirect('manage_cabinet')
     
@@ -398,14 +405,16 @@ def edit_cabinet_position(request, position_id):
     """Edit a cabinet position"""
     from .models import Cabinet, CabinetPosition
     from django import forms
-    
+    from moderator.permissions import can_manage_cabinet
+    from moderator.audit import log_action, diff_fields
+
     position = get_object_or_404(CabinetPosition, pk=position_id)
     current_cabinet = Cabinet.objects.filter(is_current=True).first()
-    
-    if not current_cabinet or request.user != current_cabinet.prime_minister:
-        messages.error(request, "Only the Prime Minister can edit cabinet positions.")
+
+    if not current_cabinet or (request.user != current_cabinet.prime_minister and not can_manage_cabinet(request.user)):
+        messages.error(request, "Only the Prime Minister (or a moderator) can edit cabinet positions.")
         return redirect('cabinet_list')
-    
+
     if position.cabinet != current_cabinet:
         messages.error(request, "Cannot edit positions from past cabinets.")
         return redirect('cabinet_list')
@@ -434,11 +443,14 @@ def edit_cabinet_position(request, position_id):
     if request.method == 'POST':
         form = EditPositionForm(request.POST)
         if form.is_valid():
+            before = {f: str(getattr(position, f)) for f in ['portfolio', 'title', 'order', 'notes']}
             position.portfolio = form.cleaned_data['portfolio']
             position.title = form.cleaned_data['title']
             position.order = form.cleaned_data['order']
             position.notes = form.cleaned_data['notes']
             position.save()
+            changes = diff_fields(position, ['portfolio', 'title', 'order', 'notes'], before)
+            log_action(request.user, 'update', position, changes=changes, view_name='edit_cabinet_position')
             messages.success(request, f"Updated {position.title}.")
             return redirect('manage_cabinet')
     else:

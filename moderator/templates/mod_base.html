@@ -11,6 +11,9 @@
     <a href="{% url 'moderator:bill_dashboard' %}" class="btn btn-sm btn-outline-light py-0">Bills</a>
     <a href="{% url 'moderator:party_dashboard' %}" class="btn btn-sm btn-outline-light py-0">Parties</a>
     <a href="{% url 'moderator:scores_dashboard' %}" class="btn btn-sm btn-outline-light py-0">Scores</a>
+    <a href="{% url 'moderator:position_dashboard' %}" class="btn btn-sm btn-outline-light py-0">Positions</a>
+    <a href="{% url 'moderator:user_dashboard' %}" class="btn btn-sm btn-outline-light py-0">Users</a>
+    <a href="{% url 'moderator:audit_log' %}" class="btn btn-sm btn-outline-light py-0">Audit Log</a>
     {% if user.is_staff %}
     <a href="/admin/" class="btn btn-sm btn-outline-warning py-0">Admin</a>
     {% endif %}

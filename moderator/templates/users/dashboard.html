@@ -1,0 +1,57 @@
+{% extends 'mod_base.html' %}
+
+{% block title %}User Management - Moderator{% endblock %}
+
+{% block mod_content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'moderator:dashboard' %}">Moderator</a></li>
+                <li class="breadcrumb-item active">Users</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">
+        <h3 class="mb-0">👥 User Management</h3>
+    </div>
+    <div class="card-body">
+        <form method="get" class="mb-3">
+            <input type="text" name="q" class="form-control" placeholder="Search username..." value="{{ search }}">
+        </form>
+
+        <table class="table table-sm table-hover">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Party</th>
+                    <th>Riding</th>
+                    <th>Role</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for profile in profiles %}
+                <tr>
+                    <td>{{ profile.user.username }}</td>
+                    <td>{{ profile.party|default:"-" }}</td>
+                    <td>{{ profile.get_riding_display|default:"-" }}</td>
+                    <td>{{ profile.role|default:"-" }}</td>
+                    <td class="text-end">
+                        <a href="{% url 'moderator:mod_edit_user_profile' profile.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-muted">No users found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p class="text-muted small">Moderator permission flags are not editable here - they're managed by site staff via Django admin.</p>
+    </div>
+</div>
+
+<a href="{% url 'moderator:dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+{% endblock %}

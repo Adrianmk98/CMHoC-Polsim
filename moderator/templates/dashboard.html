@@ -105,6 +105,43 @@
         </div>
     </div>
     {% endif %}
+
+    {% if permissions.can_manage_users %}
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-secondary">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">🏷️ Positions & Users</h5>
+            </div>
+            <div class="card-body">
+                {% if total_users %}
+                <p><strong>Total Users:</strong> {{ total_users }}</p>
+                <p><strong>Current Positions:</strong> {{ current_positions }}</p>
+                {% endif %}
+                <a href="{% url 'moderator:position_dashboard' %}" class="btn btn-secondary w-100 mb-2">
+                    Manage Positions
+                </a>
+                <a href="{% url 'moderator:user_dashboard' %}" class="btn btn-outline-secondary w-100">
+                    Manage Users
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if user.is_staff or permissions.can_manage_users %}
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-dark">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">🧾 Audit Log</h5>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'moderator:audit_log' %}" class="btn btn-dark w-100">
+                    View Audit Log
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Recent Elections (if permission) -->
@@ -174,6 +211,7 @@
                     <li>{% if permissions.can_manage_cabinet %}✅{% else %}❌{% endif %} Manage Cabinet</li>
                     <li>{% if permissions.can_manage_bills %}✅{% else %}❌{% endif %} Manage Bills</li>
                     <li>{% if permissions.can_manage_users %}✅{% else %}❌{% endif %} Manage Users</li>
+                    <li>{% if permissions.can_manage_scores %}✅{% else %}❌{% endif %} Manage Scores</li>
                     <li>{% if permissions.can_manage_parties %}✅{% else %}❌{% endif %} Manage Parties</li>
                 </ul>
             </div>

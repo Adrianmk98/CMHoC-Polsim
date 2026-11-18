@@ -1,0 +1,86 @@
+{% extends 'mod_base.html' %}
+
+{% block title %}Audit Log - Moderator{% endblock %}
+
+{% block mod_content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'moderator:dashboard' %}">Moderator</a></li>
+                <li class="breadcrumb-item active">Audit Log</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header bg-dark text-white">
+        <h3 class="mb-0">🧾 Audit Log</h3>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <input type="text" name="actor" class="form-control" placeholder="Actor username" value="{{ actor }}">
+            </div>
+            <div class="col-md-3">
+                <select name="action" class="form-select">
+                    <option value="">-- All actions --</option>
+                    {% for value, label in action_choices %}
+                    <option value="{{ value }}" {% if value == action %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="text" name="target_type" class="form-control" placeholder="Target model (e.g. Bill)" value="{{ target_type }}">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+        </form>
+
+        <table class="table table-sm table-hover">
+            <thead>
+                <tr>
+                    <th>When</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Target</th>
+                    <th>View</th>
+                    <th>Changes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in page_obj %}
+                <tr>
+                    <td>{{ entry.timestamp|date:"Y-m-d H:i" }}</td>
+                    <td>{{ entry.actor.username|default:"(system)" }}</td>
+                    <td><span class="badge bg-secondary">{{ entry.get_action_display }}</span></td>
+                    <td>{{ entry.target_type }} #{{ entry.target_id }} - {{ entry.target_repr }}</td>
+                    <td><small class="text-muted">{{ entry.view_name }}</small></td>
+                    <td><small>{{ entry.changes|default:"-" }}</small></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-muted">No audit entries found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if page_obj.has_other_pages %}
+        <nav>
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&actor={{ actor }}&action={{ action }}&target_type={{ target_type }}">Previous</a></li>
+                {% endif %}
+                <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&actor={{ actor }}&action={{ action }}&target_type={{ target_type }}">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+<a href="{% url 'moderator:dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+{% endblock %}
