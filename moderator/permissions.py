@@ -2,16 +2,24 @@
 Moderator permission checking utilities
 """
 
+
+def _mod_profile(user):
+    """Return the user's ModeratorProfile, or None if they don't have one."""
+    from .models import ModeratorProfile
+    try:
+        return user.moderator_profile
+    except ModeratorProfile.DoesNotExist:
+        return None
+
+
 def is_moderator(user):
     """Check if user has any moderator permissions"""
     if not user.is_authenticated:
         return False
     if user.is_staff:
         return True
-    try:
-        return user.profile.is_moderator
-    except:
-        return False
+    profile = _mod_profile(user)
+    return bool(profile and profile.is_moderator)
 
 
 def can_manage_elections(user):
@@ -20,10 +28,8 @@ def can_manage_elections(user):
         return False
     if user.is_staff:
         return True
-    try:
-        return user.profile.is_moderator and user.profile.can_manage_elections
-    except:
-        return False
+    profile = _mod_profile(user)
+    return bool(profile and profile.is_moderator and profile.can_manage_elections)
 
 
 def can_manage_cabinet(user):
@@ -32,10 +38,8 @@ def can_manage_cabinet(user):
         return False
     if user.is_staff:
         return True
-    try:
-        return user.profile.is_moderator and user.profile.can_manage_cabinet
-    except:
-        return False
+    profile = _mod_profile(user)
+    return bool(profile and profile.is_moderator and profile.can_manage_cabinet)
 
 
 def can_manage_bills(user):
@@ -44,10 +48,8 @@ def can_manage_bills(user):
         return False
     if user.is_staff:
         return True
-    try:
-        return user.profile.is_moderator and user.profile.can_manage_bills
-    except:
-        return False
+    profile = _mod_profile(user)
+    return bool(profile and profile.is_moderator and profile.can_manage_bills)
 
 
 def can_manage_users(user):
@@ -56,10 +58,8 @@ def can_manage_users(user):
         return False
     if user.is_staff:
         return True
-    try:
-        return user.profile.is_moderator and user.profile.can_manage_users
-    except:
-        return False
+    profile = _mod_profile(user)
+    return bool(profile and profile.is_moderator and profile.can_manage_users)
 
 
 def can_manage_scores(user):
@@ -68,10 +68,8 @@ def can_manage_scores(user):
         return False
     if user.is_staff:
         return True
-    try:
-        return user.profile.is_moderator and user.profile.can_manage_scores
-    except:
-        return False
+    profile = _mod_profile(user)
+    return bool(profile and profile.is_moderator and profile.can_manage_scores)
 
 
 def can_manage_parties(user):
@@ -80,10 +78,8 @@ def can_manage_parties(user):
         return False
     if user.is_staff:
         return True
-    try:
-        return user.profile.is_moderator and user.profile.can_manage_parties
-    except:
-        return False
+    profile = _mod_profile(user)
+    return bool(profile and profile.is_moderator and profile.can_manage_parties)
 
 
 def is_sitting_member(user, chamber):

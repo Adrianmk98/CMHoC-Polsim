@@ -23,15 +23,37 @@
         {% if active_votes %}
         <div class="list-group">
             {% for vote in active_votes %}
-            <a href="{% url 'voting:vote_detail' vote.id %}" class="list-group-item list-group-item-action">
-                <div class="d-flex justify-content-between">
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <strong>{{ vote.bill.bill_number }}: {{ vote.bill.title }}</strong><br>
-                        <small class="text-muted">{{ vote.get_vote_type_display }} • Closes: {{ vote.closes_at|date:"M d, Y" }}</small>
+                        <a href="{% url 'voting:vote_results' vote.id %}"><strong>{{ vote.bill.bill_number }}: {{ vote.bill.title }}</strong></a><br>
+                        <small class="text-muted">{{ vote.get_vote_type_display }} • Closes: {{ vote.closes_at|date:"M d, Y" }} • {{ vote.total_votes }} ballot(s)</small>
                     </div>
-                    <span class="badge bg-success">Active</span>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="badge bg-success">Active</span>
+                        <form method="post" action="{% url 'moderator:mod_force_close_vote' vote.id %}" onsubmit="return confirm('Force-close this vote now?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Force Close</button>
+                        </form>
+                    </div>
                 </div>
-            </a>
+                {% if vote.ballot_set.all %}
+                <details class="mt-2">
+                    <summary class="small text-muted">Ballots cast</summary>
+                    <ul class="list-unstyled small mb-0 mt-1">
+                        {% for ballot in vote.ballot_set.all %}
+                        <li class="d-flex justify-content-between align-items-center">
+                            <span>{{ ballot.voter.username }}: {{ ballot.get_vote_display }}</span>
+                            <form method="post" action="{% url 'moderator:mod_delete_ballot' ballot.id %}" onsubmit="return confirm('Remove this ballot?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-link text-danger p-0">Remove</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </details>
+                {% endif %}
+            </div>
             {% endfor %}
         </div>
         {% else %}

@@ -1,0 +1,77 @@
+{% extends 'mod_base.html' %}
+
+{% block title %}Position Management - Moderator{% endblock %}
+
+{% block mod_content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'moderator:dashboard' %}">Moderator</a></li>
+                <li class="breadcrumb-item active">Positions</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">🏷️ Position History</h3>
+        <a href="{% url 'moderator:mod_add_position_history' %}" class="btn btn-light btn-sm">+ Add Position</a>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-4">
+                <select name="position_type" class="form-select" onchange="this.form.submit()">
+                    <option value="">-- All position types --</option>
+                    {% for value, label in position_types %}
+                    <option value="{{ value }}" {% if value == selected_type %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <div class="form-check mt-2">
+                    <input type="checkbox" name="show_past" value="1" class="form-check-input" id="showPast" {% if show_past %}checked{% endif %} onchange="this.form.submit()">
+                    <label class="form-check-label" for="showPast">Include ended positions</label>
+                </div>
+            </div>
+        </form>
+
+        <table class="table table-sm table-hover">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Position</th>
+                    <th>Type</th>
+                    <th>Riding</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for position in positions %}
+                <tr>
+                    <td>{{ position.user_profile.user.username }}</td>
+                    <td>{{ position.position_title }}</td>
+                    <td>{{ position.get_position_type_display }}</td>
+                    <td>{{ position.get_riding_display|default:"-" }}</td>
+                    <td>{{ position.start_date }}</td>
+                    <td>{% if position.end_date %}{{ position.end_date }}{% else %}<span class="badge bg-success">Current</span>{% endif %}</td>
+                    <td class="text-end">
+                        <a href="{% url 'moderator:mod_edit_position_history' position.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                        {% if not position.end_date %}
+                        <a href="{% url 'moderator:mod_end_position_history' position.id %}" class="btn btn-sm btn-outline-danger">End</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-muted">No positions found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<a href="{% url 'moderator:dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+{% endblock %}
