@@ -16,10 +16,17 @@ class NoBaselineData(Exception):
     """Raised when a riding has neither prior results nor a static baseline to project from."""
 
 
-def _get_baseline_shares(riding):
+def _get_baseline_shares(riding, exclude_election=None):
     """Return {party: share_percent} from the riding's most recent real result,
-    falling back to its static baseline_party/baseline_vote_share fields."""
-    last_result = riding.election_results.order_by('-election__election_date').first()
+    falling back to its static baseline_party/baseline_vote_share fields.
+
+    exclude_election: skip this election's own result — needed when projecting an
+    election that already has (unfilled) CandidateResult rows of its own, so that
+    in-progress election isn't mistaken for its own baseline history."""
+    candidates_qs = riding.election_results.order_by('-election__election_date')
+    if exclude_election is not None:
+        candidates_qs = candidates_qs.exclude(election=exclude_election)
+    last_result = candidates_qs.first()
     if last_result:
         candidates = list(last_result.candidate_results.all())
         if candidates:
@@ -34,17 +41,19 @@ def _get_baseline_shares(riding):
     return (None, None)
 
 
-def project_riding_result(riding, swing_by_party=None, total_votes_cast=None):
+def project_riding_result(riding, swing_by_party=None, total_votes_cast=None, exclude_election=None):
     """
     riding: a forum.models.Riding instance.
     swing_by_party: {party_id: Decimal percentage-point swing}, positive = gain.
     total_votes_cast: override for projected vote totals; else uses baseline's own total.
+    exclude_election: see _get_baseline_shares — pass the election being projected so its
+    own (still-empty) result isn't used as its own baseline.
 
     Returns a list[PartyProjection] ordered winner-first, or None if the riding has no
     baseline data to project from (mod must enter results manually).
     """
     swing_by_party = swing_by_party or {}
-    baseline_shares, baseline_total_votes = _get_baseline_shares(riding)
+    baseline_shares, baseline_total_votes = _get_baseline_shares(riding, exclude_election=exclude_election)
     if not baseline_shares:
         return None
 

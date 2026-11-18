@@ -15,6 +15,11 @@ urlpatterns = [
     path('elections/create/', views.create_election, name='create_election'),
     path('elections/<int:election_id>/results/', views.add_results, name='add_results'),
     path('elections/<int:election_id>/bulk-add/', views.bulk_add_results, name='bulk_add_results'),
+    path('elections/<int:election_id>/polling/modifiers/', views.run_compute_modifiers, name='run_compute_modifiers'),
+    path('elections/<int:election_id>/polling/national/', views.run_national_poll, name='run_national_poll'),
+    path('elections/<int:election_id>/polling/regional/', views.run_regional_poll, name='run_regional_poll'),
+    path('elections/<int:election_id>/polling/apply/', views.run_apply_to_ridings, name='run_apply_to_ridings'),
+    path('elections/<int:election_id>/polling/seats/', views.run_allocate_seats, name='run_allocate_seats'),
     path('elections/result/<int:result_id>/candidates/', views.add_candidates, name='add_candidates'),
     path('elections/<int:election_id>/complete/', views.complete_election, name='complete_election'),
     

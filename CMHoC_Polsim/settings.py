@@ -108,24 +108,27 @@ WSGI_APPLICATION = 'CMHoC_Polsim.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME', default='cmhoc_db'),
-        'USER': config('DB_USER', default='cmhoc_user'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST', default='db'),
-        'PORT': config('DB_PORT', default='5432'),
-    }
-}
+USE_SQLITE = config('USE_SQLITE', default=False, cast=bool)
 
-# For development/testing, you can also use SQLite by uncommenting:
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
+if USE_SQLITE:
+    # Dev-only: no local Postgres needed.
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DB_NAME', default='cmhoc_db'),
+            'USER': config('DB_USER', default='cmhoc_user'),
+            'PASSWORD': config('DB_PASSWORD'),
+            'HOST': config('DB_HOST', default='db'),
+            'PORT': config('DB_PORT', default='5432'),
+        }
+    }
 
 
 # Password validation
@@ -170,23 +173,36 @@ STATICFILES_DIRS = [
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Media files (Bill PDFs, Party Constitution PDFs, user avatars) - stored in a
-# Google Cloud Storage bucket. Credentials come from the GCE instance's attached
-# service account, same as VERTEX_PROJECT_ID above - no key file needed.
+# Media files (Bill PDFs, Party Constitution PDFs, user avatars). In production,
+# stored in a Google Cloud Storage bucket - credentials come from the GCE
+# instance's attached service account, same as VERTEX_PROJECT_ID above (no key
+# file needed). In dev, with no bucket configured, falls back to local disk.
 GS_BUCKET_NAME = config('GS_BUCKET_NAME', default='')
 GS_PROJECT_ID = config('GS_PROJECT_ID', default='')
 GS_DEFAULT_ACL = 'publicRead'
 GS_FILE_OVERWRITE = False
-MEDIA_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/'
 
-STORAGES = {
-    'default': {
-        'BACKEND': 'storages.backends.gcloud.GoogleCloudStorage',
-    },
-    'staticfiles': {
-        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
-    },
-}
+if GS_BUCKET_NAME:
+    MEDIA_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/'
+    STORAGES = {
+        'default': {
+            'BACKEND': 'storages.backends.gcloud.GoogleCloudStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    }
+else:
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    }
 
 # Authentication settings
 LOGIN_REDIRECT_URL = 'index'  # Where to redirect after login

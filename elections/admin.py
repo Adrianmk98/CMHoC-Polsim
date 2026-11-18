@@ -181,7 +181,10 @@ class RidingElectionResultAdmin(admin.ModelAdmin):
 
             filled, skipped = 0, 0
             for riding_result in queryset:
-                projections = project_riding_result(riding_result.riding, swing_by_party=swing_by_party)
+                projections = project_riding_result(
+                    riding_result.riding, swing_by_party=swing_by_party,
+                    exclude_election=riding_result.election,
+                )
                 existing_candidates = list(riding_result.candidate_results.select_related('party'))
                 if not projections or not existing_candidates:
                     skipped += 1
