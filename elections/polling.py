@@ -150,9 +150,13 @@ def run_regional_polling(election, regional_swing=None):
     return results
 
 
-def apply_polling_to_ridings(election):
+def apply_polling_to_ridings(election, auto_declare_winners=True):
     """For each riding, turn (regional % − national %) into a swing and feed it through the
-    existing swing-based projector, writing projected votes onto CandidateResult rows."""
+    existing swing-based projector, writing projected votes onto CandidateResult rows.
+
+    When auto_declare_winners is True (the default), also sets each riding's winner/
+    winning_party to the top-voted declared candidate and recomputes total_votes_cast —
+    a mod can still review and override any riding afterwards."""
     national_by_party = {poll.party_id: poll for poll in election.national_polls.all()}
     if not national_by_party:
         raise ValueError("No NationalPoll rows for this election — run run_national_polling() first.")
@@ -179,26 +183,34 @@ def apply_polling_to_ridings(election):
             target_pct = regional_poll.regional_pct if regional_poll else national_poll.corrected_pct
             swing_by_party[party_id] = (target_pct - national_poll.corrected_pct) * Decimal('100')
 
-        projections = project_riding_result(riding, swing_by_party=swing_by_party)
+        projections = project_riding_result(riding, swing_by_party=swing_by_party, exclude_election=election)
         candidates = list(riding_result.candidate_results.all())
         if not projections or not candidates:
             skipped += 1
             continue
 
         projection_by_party = {proj.party.id: proj for proj in projections}
-        updated_any = False
+        updated_candidates = []
         for candidate in candidates:
             projection = projection_by_party.get(candidate.party_id)
             if projection is None:
                 continue
             candidate.votes = projection.projected_votes
             candidate.save()
-            updated_any = True
+            updated_candidates.append(candidate)
 
-        if updated_any:
-            updated += 1
-        else:
+        if not updated_candidates:
             skipped += 1
+            continue
+        updated += 1
+
+        if auto_declare_winners:
+            top_candidate = max(updated_candidates, key=lambda c: c.votes)
+            for candidate in updated_candidates:
+                candidate.is_winner = (candidate.id == top_candidate.id)
+                candidate.save(update_fields=['is_winner'])
+            riding_result.total_votes_cast = sum(c.votes for c in updated_candidates)
+            riding_result.set_winner(top_candidate.candidate, party=top_candidate.party)
 
     return {'updated': updated, 'skipped': skipped}
 

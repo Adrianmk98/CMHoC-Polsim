@@ -1,3 +1,5 @@
+from decimal import Decimal, InvalidOperation
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -10,7 +12,8 @@ from .permissions import (
     can_manage_parties, get_moderator_permissions,
 )
 from elections.models import Election, RidingElectionResult, CandidateResult
-from forum.models import Riding, UserProfile, PoliticalParty, Cabinet, CabinetPosition, PositionHistory
+from elections import polling
+from forum.models import Riding, UserProfile, PoliticalParty, Cabinet, CabinetPosition
 from voting.models import Bill, Vote
 from parties.models import Party, PartyMembership, PartyRole, JoinRequest
 from npcs.models import NPCProfile
@@ -133,8 +136,17 @@ def create_election(request):
             if riding_id:
                 election.riding = Riding.objects.get(pk=riding_id)
                 election.save()
-        
-        messages.success(request, f"Election '{name}' created! Now add results.")
+
+        # Pre-create a blank result row per riding so the candidate/polling wizard has
+        # something to attach CandidateResult/projections to.
+        if election.election_type == 'BY_ELECTION' and election.riding:
+            target_ridings = [election.riding]
+        else:
+            target_ridings = Riding.objects.all()
+        for riding in target_ridings:
+            RidingElectionResult.objects.get_or_create(election=election, riding=riding)
+
+        messages.success(request, f"Election '{name}' created! Now declare candidates and run polling.")
         return redirect('moderator:add_results', election_id=election.id)
     
     ridings = Riding.objects.all().order_by('name')
@@ -147,35 +159,170 @@ def create_election(request):
 
 @login_required
 def add_results(request, election_id):
-    """Add/edit results for an election"""
+    """Score-driven results wizard: declare candidates, run the polling pipeline stage by
+    stage, then review/confirm the auto-declared winners."""
     if not can_manage_elections(request.user):
         messages.error(request, "You don't have permission to manage elections.")
         return redirect('moderator:dashboard')
-    
+
     election = get_object_or_404(Election, pk=election_id)
-    
+
     # Get ridings to add results for
     if election.election_type == 'BY_ELECTION' and election.riding:
         ridings = [election.riding]
     else:
         ridings = Riding.objects.all().order_by('name')
-    
+
     # Get existing results
     existing_results = RidingElectionResult.objects.filter(
         election=election
-    ).select_related('riding', 'winner', 'winning_party')
-    
+    ).select_related('riding', 'winner', 'winning_party').prefetch_related('candidate_results')
+
     # Create lookup for existing results
     results_by_riding = {r.riding.id: r for r in existing_results}
-    
+    candidate_counts_by_riding = {
+        r.riding.id: r.candidate_results.count() for r in existing_results
+    }
+    ridings_with_candidates = sum(1 for count in candidate_counts_by_riding.values() if count > 0)
+
+    has_modifiers = election.party_modifiers.exists()
+    has_national_poll = election.national_polls.exists()
+    has_regional_poll = election.regional_polls.exists()
+    has_applied_polling = any(
+        candidate_counts_by_riding.get(riding_id, 0) > 0 and result.winner_id
+        for riding_id, result in results_by_riding.items()
+    )
+
     context = {
         'election': election,
         'ridings': ridings,
         'results_by_riding': results_by_riding,
+        'candidate_counts_by_riding': candidate_counts_by_riding,
+        'ridings_with_candidates': ridings_with_candidates,
         'parties': PoliticalParty.objects.all(),
         'users': UserProfile.objects.all().select_related('user', 'party').order_by('user__username'),
+        'has_modifiers': has_modifiers,
+        'has_national_poll': has_national_poll,
+        'has_regional_poll': has_regional_poll,
+        'has_applied_polling': has_applied_polling,
+        'party_modifiers': election.party_modifiers.select_related('party').order_by('-personal_mods_total') if has_modifiers else None,
+        'national_polls': election.national_polls.select_related('party').order_by('-corrected_pct') if has_national_poll else None,
+        'regional_polls': election.regional_polls.select_related('party').order_by('region', '-regional_pct') if has_regional_poll else None,
+        'region_seats': election.region_seat_configs.all() if election.uses_list_seats else None,
+        'list_seats': election.list_seats.select_related('party').order_by('region', '-seats_won') if election.uses_list_seats else None,
     }
     return render(request, 'elections/add_results.html', context)
+
+
+@login_required
+def run_compute_modifiers(request, election_id):
+    """Pipeline stage 1: sum each party's active members' scores into a PartyModifier."""
+    if not can_manage_elections(request.user):
+        messages.error(request, "You don't have permission to manage elections.")
+        return redirect('moderator:dashboard')
+
+    election = get_object_or_404(Election, pk=election_id)
+    if request.method == 'POST':
+        try:
+            rows = polling.compute_party_modifiers(election)
+            messages.success(request, f"Computed party modifiers for {len(rows)} party/ies.")
+        except ValueError as exc:
+            messages.error(request, str(exc))
+    return redirect('moderator:add_results', election_id=election.id)
+
+
+@login_required
+def run_national_poll(request, election_id):
+    """Pipeline stage 2: normalize modifiers into a national polling % with random fuzz."""
+    if not can_manage_elections(request.user):
+        messages.error(request, "You don't have permission to manage elections.")
+        return redirect('moderator:dashboard')
+
+    election = get_object_or_404(Election, pk=election_id)
+    if request.method == 'POST':
+        kwargs = {}
+        margin_of_error = request.POST.get('margin_of_error', '').strip()
+        volatility_multiplier = request.POST.get('volatility_multiplier', '').strip()
+        if margin_of_error:
+            kwargs['margin_of_error'] = Decimal(margin_of_error)
+        if volatility_multiplier:
+            kwargs['volatility_multiplier'] = Decimal(volatility_multiplier)
+        try:
+            polls = polling.run_national_polling(election, **kwargs)
+            messages.success(request, f"Ran national polling for {len(polls)} party/ies.")
+        except (ValueError, InvalidOperation) as exc:
+            messages.error(request, str(exc))
+    return redirect('moderator:add_results', election_id=election.id)
+
+
+@login_required
+def run_regional_poll(request, election_id):
+    """Pipeline stage 3: spread the national poll across regions, with optional mod swings."""
+    if not can_manage_elections(request.user):
+        messages.error(request, "You don't have permission to manage elections.")
+        return redirect('moderator:dashboard')
+
+    election = get_object_or_404(Election, pk=election_id)
+    if request.method == 'POST':
+        regional_swing = {}
+        for key, raw in request.POST.items():
+            if not key.startswith('swing_'):
+                continue
+            raw = raw.strip()
+            if not raw:
+                continue
+            _, party_id, region = key.split('_', 2)
+            try:
+                regional_swing[(int(party_id), region)] = Decimal(raw)
+            except InvalidOperation:
+                continue
+        try:
+            polls = polling.run_regional_polling(election, regional_swing=regional_swing or None)
+            messages.success(request, f"Wrote {len(polls)} regional poll row(s).")
+        except ValueError as exc:
+            messages.error(request, str(exc))
+    return redirect('moderator:add_results', election_id=election.id)
+
+
+@login_required
+def run_apply_to_ridings(request, election_id):
+    """Pipeline stage 4: project each riding's vote totals and auto-declare winners."""
+    if not can_manage_elections(request.user):
+        messages.error(request, "You don't have permission to manage elections.")
+        return redirect('moderator:dashboard')
+
+    election = get_object_or_404(Election, pk=election_id)
+    if request.method == 'POST':
+        try:
+            result = polling.apply_polling_to_ridings(election)
+            messages.success(
+                request,
+                f"Applied polling to {result['updated']} riding(s), skipped {result['skipped']} "
+                f"(no baseline data or no declared candidates)."
+            )
+        except ValueError as exc:
+            messages.error(request, str(exc))
+    return redirect('moderator:add_results', election_id=election.id)
+
+
+@login_required
+def run_allocate_seats(request, election_id):
+    """Pipeline stage 5 (optional): D'Hondt-allocate proportional regional list seats."""
+    if not can_manage_elections(request.user):
+        messages.error(request, "You don't have permission to manage elections.")
+        return redirect('moderator:dashboard')
+
+    election = get_object_or_404(Election, pk=election_id)
+    if request.method == 'POST':
+        try:
+            result = polling.allocate_list_seats(election)
+            if isinstance(result, dict) and result.get('skipped'):
+                messages.warning(request, f"Skipped — {result['reason']}")
+            else:
+                messages.success(request, f"Allocated list seats ({len(result)} row(s)).")
+        except ValueError as exc:
+            messages.error(request, str(exc))
+    return redirect('moderator:add_results', election_id=election.id)
 
 
 @login_required
@@ -197,36 +344,18 @@ def bulk_add_results(request, election_id):
             for result_data in data.get('results', []):
                 riding = Riding.objects.get(pk=result_data['riding_id'])
                 winner = UserProfile.objects.get(pk=result_data['winner_id']) if result_data.get('winner_id') else None
-                
+
                 result, created = RidingElectionResult.objects.update_or_create(
                     election=election,
                     riding=riding,
                     defaults={
-                        'winner': winner,
-                        'winning_party': winner.party if winner else None,
                         'total_votes_cast': result_data.get('total_votes', 0),
                         'is_acclaimed': result_data.get('is_acclaimed', False),
                     }
                 )
 
                 if winner:
-                    # End any current MP position for this riding
-                    PositionHistory.objects.filter(
-                        position_type='MP',
-                        riding_obj=riding,
-                        end_date__isnull=True,
-                    ).exclude(user_profile=winner).update(end_date=election.election_date)
-                    # Create new MP position if not already current
-                    PositionHistory.objects.get_or_create(
-                        position_type='MP',
-                        riding_obj=riding,
-                        user_profile=winner,
-                        end_date=None,
-                        defaults={
-                            'position_title': f'Member of Parliament for {riding.name}',
-                            'start_date': election.election_date,
-                        }
-                    )
+                    result.set_winner(winner)
 
                 if created:
                     created_count += 1

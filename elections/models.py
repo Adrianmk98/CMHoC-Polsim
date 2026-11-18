@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
-from forum.models import Riding, UserProfile, PoliticalParty, Province
+from forum.models import Riding, UserProfile, PoliticalParty, Province, PositionHistory
 
 
 class Election(models.Model):
@@ -243,6 +243,37 @@ class RidingElectionResult(models.Model):
         if self.winning_party and self.previous_party:
             return self.winning_party != self.previous_party
         return None
+
+    def set_winner(self, user_profile, party=None):
+        """Declare user_profile as this riding's winner: sets winner/winning_party, and
+        swaps the riding's MP PositionHistory over to them. Shared by manual entry
+        (moderator bulk_add_results) and the score-driven polling pipeline.
+
+        party: the PoliticalParty they won under, if already known (e.g. from their
+        CandidateResult). Falls back to their party membership's linked real party."""
+        self.winner = user_profile
+        if party is not None:
+            self.winning_party = party
+        else:
+            self.winning_party = user_profile.party.political_party if user_profile.party else None
+
+        PositionHistory.objects.filter(
+            position_type='MP',
+            riding_obj=self.riding,
+            end_date__isnull=True,
+        ).exclude(user_profile=user_profile).update(end_date=self.election.election_date)
+
+        PositionHistory.objects.get_or_create(
+            position_type='MP',
+            riding_obj=self.riding,
+            user_profile=user_profile,
+            end_date=None,
+            defaults={
+                'position_title': f'Member of Parliament for {self.riding.name}',
+                'start_date': self.election.election_date,
+            }
+        )
+        self.save()
 
 
 class CandidateResult(models.Model):

@@ -4,8 +4,8 @@ from decimal import Decimal
 from django.contrib.auth.models import User
 from django.test import TestCase
 
-from forum.models import PoliticalParty, Riding, UserProfile
-from .models import CandidateResult, Election, PartyModifier, RidingElectionResult
+from forum.models import PoliticalParty, PositionHistory, Province, Riding, UserProfile
+from .models import CandidateResult, Election, NationalPoll, PartyModifier, RegionalPoll, RidingElectionResult
 from .services import project_riding_result
 from . import polling
 
@@ -257,6 +257,104 @@ class DHondtTests(TestCase):
         votes_by_party = {'A': 100, 'B': 50, 'C': 25}
         allocation = polling._dhondt_allocate(votes_by_party, 7)
         self.assertEqual(sum(allocation.values()), 7)
+
+
+class ApplyPollingAutoDeclareTests(TestCase):
+    """apply_polling_to_ridings() should not just fill votes — it should declare the
+    top-projected candidate winner, same as a mod picking a winner by hand would."""
+
+    def setUp(self):
+        self.lib = make_party('LIB')
+        self.con = make_party('CON')
+        self.riding = Riding.objects.create(name='Auto Riding')
+        province = Province.objects.create(code='ON', region='ONTARIO')
+        self.riding.provinces.add(province)
+
+        # A real prior election's result is this riding's baseline (50/50).
+        self.prior_election = Election.objects.create(
+            name='Prior Election', election_type='FEDERAL', election_date=date(2020, 1, 1)
+        )
+        prior_result = RidingElectionResult.objects.create(
+            election=self.prior_election, riding=self.riding, total_votes_cast=1000
+        )
+        CandidateResult.objects.create(
+            riding_result=prior_result, candidate=make_candidate('prior_lib'), party=self.lib, votes=500
+        )
+        CandidateResult.objects.create(
+            riding_result=prior_result, candidate=make_candidate('prior_con'), party=self.con, votes=500
+        )
+
+        # The election under test: candidates declared (votes=0), nothing projected yet.
+        self.election = Election.objects.create(
+            name='Auto-Declare Test', election_type='FEDERAL', election_date=date(2024, 1, 1)
+        )
+        self.riding_result = RidingElectionResult.objects.create(
+            election=self.election, riding=self.riding, total_votes_cast=0
+        )
+        self.lib_candidate = make_candidate('auto_lib')
+        self.con_candidate = make_candidate('auto_con')
+        self.lib_result = CandidateResult.objects.create(
+            riding_result=self.riding_result, candidate=self.lib_candidate, party=self.lib, votes=0
+        )
+        self.con_result = CandidateResult.objects.create(
+            riding_result=self.riding_result, candidate=self.con_candidate, party=self.con, votes=0
+        )
+        # National poll strongly favouring CON; no regional poll, so the riding swing comes
+        # straight from the national split.
+        NationalPoll.objects.create(
+            election=self.election, party=self.lib,
+            true_polling_pct=Decimal('0.3'), random_number=Decimal('0.5'),
+            max_variance=Decimal('0'), actual_variance=Decimal('0'),
+            fuzzed_pct=Decimal('0.3'), corrected_pct=Decimal('0.3'),
+        )
+        NationalPoll.objects.create(
+            election=self.election, party=self.con,
+            true_polling_pct=Decimal('0.7'), random_number=Decimal('0.5'),
+            max_variance=Decimal('0'), actual_variance=Decimal('0'),
+            fuzzed_pct=Decimal('0.7'), corrected_pct=Decimal('0.7'),
+        )
+        # Ontario is polling even stronger for CON than the national split, giving this
+        # riding a real swing on top of its 50/50 baseline.
+        RegionalPoll.objects.create(
+            election=self.election, party=self.lib, region='ONTARIO', regional_pct=Decimal('0.1'),
+        )
+        RegionalPoll.objects.create(
+            election=self.election, party=self.con, region='ONTARIO', regional_pct=Decimal('0.9'),
+        )
+
+    def test_declares_top_projected_candidate_winner(self):
+        result = polling.apply_polling_to_ridings(self.election)
+        self.assertEqual(result, {'updated': 1, 'skipped': 0})
+
+        self.riding_result.refresh_from_db()
+        self.assertEqual(self.riding_result.winner, self.con_candidate)
+        self.assertEqual(self.riding_result.winning_party, self.con)
+
+        self.con_result.refresh_from_db()
+        self.lib_result.refresh_from_db()
+        self.assertTrue(self.con_result.is_winner)
+        self.assertFalse(self.lib_result.is_winner)
+        self.assertGreater(self.con_result.votes, self.lib_result.votes)
+        self.assertEqual(
+            self.riding_result.total_votes_cast, self.con_result.votes + self.lib_result.votes
+        )
+
+    def test_opens_mp_position_history_for_declared_winner(self):
+        polling.apply_polling_to_ridings(self.election)
+        self.assertTrue(
+            PositionHistory.objects.filter(
+                position_type='MP', riding_obj=self.riding,
+                user_profile=self.con_candidate, end_date__isnull=True,
+            ).exists()
+        )
+
+    def test_auto_declare_can_be_disabled(self):
+        polling.apply_polling_to_ridings(self.election, auto_declare_winners=False)
+        self.riding_result.refresh_from_db()
+        self.assertIsNone(self.riding_result.winner)
+        self.con_result.refresh_from_db()
+        self.assertGreater(self.con_result.votes, 0)
+        self.assertFalse(self.con_result.is_winner)
 
 
 class ListSeatsToggleTests(TestCase):

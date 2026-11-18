@@ -1,7 +1,7 @@
 {% extends 'mod_base.html' %}
 {% load moderator_extras %}
 
-{% block title %}Add Results - {{ election.name }}{% endblock %}
+{% block title %}Results Wizard - {{ election.name }}{% endblock %}
 
 {% block mod_content %}
 <div class="row">
@@ -10,7 +10,7 @@
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{% url 'moderator:dashboard' %}">Moderator</a></li>
                 <li class="breadcrumb-item"><a href="{% url 'elections:election_detail' election.id %}">{{ election.name }}</a></li>
-                <li class="breadcrumb-item active">Add Results</li>
+                <li class="breadcrumb-item active">Results Wizard</li>
             </ol>
         </nav>
     </div>
@@ -20,34 +20,214 @@
     <div class="col-12">
         <div class="card mb-3">
             <div class="card-header bg-primary text-white">
-                <h3>Add Results: {{ election.name }}</h3>
+                <h3>Score-Driven Results: {{ election.name }}</h3>
                 <p class="mb-0">{{ election.election_date|date:"F d, Y" }}</p>
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <strong>Progress:</strong> 
-                        {{ results_by_riding|length }} / {{ ridings|length }} ridings completed
+                        <strong>Progress:</strong>
+                        {{ ridings_with_candidates }} / {{ ridings|length }} ridings have declared candidates
                     </div>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-success" onclick="saveAllResults()">
-                            💾 Save All Results
-                        </button>
-                        <a href="{% url 'moderator:complete_election' election.id %}" class="btn btn-warning">
-                            ✓ Mark as Completed
-                        </a>
-                    </div>
+                    <a href="{% url 'moderator:complete_election' election.id %}" class="btn btn-warning">
+                        ✓ Mark as Completed
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Quick Entry Table -->
+<!-- Stage 1: Candidates -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h4>Stage 1 · Declare Candidates</h4>
+        <p class="mb-0 text-muted">Who's running in each riding, and for which party. The polling pipeline can only project votes for ridings that have declared candidates.</p>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Riding</th>
+                        <th>Candidates Declared</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for riding in ridings %}
+                    <tr>
+                        <td>
+                            <strong>{{ riding.name }}</strong><br>
+                            <small class="text-muted">{{ riding.province_display }}</small>
+                        </td>
+                        <td>
+                            {% with count=candidate_counts_by_riding|get_item:riding.id %}
+                                {% if count %}
+                                    <span class="badge bg-success">{{ count }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">0</span>
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td>
+                            {% if riding.id in results_by_riding %}
+                                <a href="{% url 'moderator:add_candidates' results_by_riding|get_item:riding.id|attr:'id' %}"
+                                   class="btn btn-sm btn-outline-primary">👥 Candidates</a>
+                            {% else %}
+                                <button class="btn btn-sm btn-outline-secondary" disabled>👥 Candidates</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Stage 2: Run Polling -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h4>Stage 2 · Run Polling</h4>
+        <p class="mb-0 text-muted">Runs the scoring pipeline in order. Each step can be re-run to re-roll before moving on.</p>
+    </div>
+    <div class="card-body">
+
+        <!-- 2a: Party Modifiers -->
+        <h5>1. Compute Party Modifiers</h5>
+        <p class="text-muted">Sums each party's active members' scores into a polling modifier.</p>
+        <form method="post" action="{% url 'moderator:run_compute_modifiers' election.id %}" class="mb-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">Compute Party Modifiers</button>
+        </form>
+        {% if party_modifiers %}
+        <div class="table-responsive mb-4">
+            <table class="table table-sm">
+                <thead><tr><th>Party</th><th>Personal Mods</th><th>Platform</th><th>Press</th><th>Attack Press</th><th>Gov Bonus</th><th>Transfer</th><th>Total</th></tr></thead>
+                <tbody>
+                    {% for mod in party_modifiers %}
+                    <tr>
+                        <td>{{ mod.party.get_name_display }}</td>
+                        <td>{{ mod.personal_mods_total }}</td>
+                        <td>{{ mod.platform_score }}</td>
+                        <td>{{ mod.press_score }}</td>
+                        <td>{{ mod.attack_press_score }}</td>
+                        <td>{{ mod.gov_bonus }}</td>
+                        <td>{{ mod.modifier_transfer }}</td>
+                        <td><strong>{{ mod.total_modifier }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- 2b: National Poll -->
+        <h5>2. Run National Poll</h5>
+        <p class="text-muted">Normalizes modifiers into a national polling %, with a random "fuzz" margin.</p>
+        <form method="post" action="{% url 'moderator:run_national_poll' election.id %}" class="mb-2">
+            {% csrf_token %}
+            <details class="mb-2">
+                <summary class="text-muted" style="cursor:pointer;">Advanced options</summary>
+                <div class="row g-2 mt-2" style="max-width: 500px;">
+                    <div class="col-6">
+                        <label class="form-label small">Margin of error (default 0.12)</label>
+                        <input type="text" name="margin_of_error" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Volatility multiplier (default 5)</label>
+                        <input type="text" name="volatility_multiplier" class="form-control form-control-sm">
+                    </div>
+                </div>
+            </details>
+            <button type="submit" class="btn btn-primary" {% if not has_modifiers %}disabled{% endif %}>Run National Poll</button>
+        </form>
+        {% if national_polls %}
+        <div class="table-responsive mb-4">
+            <table class="table table-sm">
+                <thead><tr><th>Party</th><th>True %</th><th>Random Roll</th><th>Fuzzed %</th><th>Corrected %</th></tr></thead>
+                <tbody>
+                    {% for poll in national_polls %}
+                    <tr>
+                        <td>{{ poll.party.get_name_display }}</td>
+                        <td>{{ poll.true_polling_pct|floatformat:4 }}</td>
+                        <td>{{ poll.random_number|floatformat:4 }}</td>
+                        <td>{{ poll.fuzzed_pct|floatformat:4 }}</td>
+                        <td><strong>{{ poll.corrected_pct|floatformat:4 }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- 2c: Regional Poll -->
+        <h5>3. Run Regional Poll</h5>
+        <p class="text-muted">Spreads the national poll across regions. Optionally nudge a party's regional swing (percentage points).</p>
+        <form method="post" action="{% url 'moderator:run_regional_poll' election.id %}" class="mb-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary" {% if not has_national_poll %}disabled{% endif %}>Run Regional Poll</button>
+        </form>
+        {% if regional_polls %}
+        <div class="table-responsive mb-4">
+            <table class="table table-sm">
+                <thead><tr><th>Region</th><th>Party</th><th>Regional %</th></tr></thead>
+                <tbody>
+                    {% for poll in regional_polls %}
+                    <tr>
+                        <td>{{ poll.get_region_display }}</td>
+                        <td>{{ poll.party.get_name_display }}</td>
+                        <td>{{ poll.regional_pct|floatformat:4 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- 2d: Apply to Ridings -->
+        <h5>4. Apply Polling to Ridings</h5>
+        <p class="text-muted">Projects each riding's vote totals from the regional swing and <strong>auto-declares the top-projected candidate as winner</strong>. Review and override in Stage 3 below.</p>
+        <form method="post" action="{% url 'moderator:run_apply_to_ridings' election.id %}" class="mb-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success" {% if not has_regional_poll %}disabled{% endif %}>Apply to Ridings &amp; Declare Winners</button>
+        </form>
+
+        {% if election.uses_list_seats %}
+        <!-- 2e: Allocate List Seats -->
+        <h5>5. Allocate List Seats</h5>
+        <p class="text-muted">D'Hondt-allocates each region's configured proportional list seats from riding vote totals.</p>
+        <form method="post" action="{% url 'moderator:run_allocate_seats' election.id %}" class="mb-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary" {% if not has_applied_polling %}disabled{% endif %}>Allocate List Seats</button>
+        </form>
+        {% if list_seats %}
+        <div class="table-responsive mb-2">
+            <table class="table table-sm">
+                <thead><tr><th>Region</th><th>Party</th><th>List Votes</th><th>Seats Won</th></tr></thead>
+                <tbody>
+                    {% for seat in list_seats %}
+                    <tr>
+                        <td>{{ seat.get_region_display }}</td>
+                        <td>{{ seat.party.get_name_display }}</td>
+                        <td>{{ seat.list_votes }}</td>
+                        <td><strong>{{ seat.seats_won }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Stage 3: Review & Confirm -->
 <div class="card">
     <div class="card-header">
-        <h4>Quick Results Entry</h4>
-        <p class="mb-0 text-muted">Enter winners for each riding. You can add detailed candidate data later.</p>
+        <h4>Stage 3 · Review &amp; Confirm Results</h4>
+        <p class="mb-0 text-muted">Winners below were auto-declared from the polling pipeline. Override any riding here, then save.</p>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -74,7 +254,7 @@
                             <select class="form-select form-select-sm winner-select" data-riding="{{ riding.id }}">
                                 <option value="">Select Winner...</option>
                                 {% for user in users %}
-                                    <option value="{{ user.id }}" 
+                                    <option value="{{ user.id }}"
                                             data-party="{{ user.party.id|default:'' }}"
                                             {% if riding.id in results_by_riding and results_by_riding|get_item:riding.id|attr:'winner' == user %}selected{% endif %}>
                                         {{ user.user.username }}{% if user.party %} ({{ user.party.name }}){% endif %}
@@ -92,13 +272,13 @@
                             {% endif %}
                         </td>
                         <td>
-                            <input type="number" class="form-control form-control-sm votes-input" 
+                            <input type="number" class="form-control form-control-sm votes-input"
                                    value="{% if riding.id in results_by_riding %}{{ results_by_riding|get_item:riding.id|attr:'total_votes_cast' }}{% endif %}"
                                    placeholder="0">
                         </td>
                         <td>
                             {% if riding.id in results_by_riding %}
-                                <a href="{% url 'moderator:add_candidates' results_by_riding|get_item:riding.id|attr:'id' %}" 
+                                <a href="{% url 'moderator:add_candidates' results_by_riding|get_item:riding.id|attr:'id' %}"
                                    class="btn btn-sm btn-outline-primary" title="Add Candidates">
                                     👥
                                 </a>
@@ -113,19 +293,16 @@
                 </tbody>
             </table>
         </div>
+        <button type="button" class="btn btn-success btn-lg" onclick="saveAllResults()">
+            💾 Save Reviewed Results
+        </button>
+        <a href="{% url 'moderator:complete_election' election.id %}" class="btn btn-warning btn-lg">
+            ✓ Complete Election
+        </a>
+        <a href="{% url 'moderator:dashboard' %}" class="btn btn-secondary btn-lg">
+            Back to Dashboard
+        </a>
     </div>
-</div>
-
-<div class="mt-3 mb-5">
-    <button type="button" class="btn btn-success btn-lg" onclick="saveAllResults()">
-        💾 Save All Results
-    </button>
-    <a href="{% url 'moderator:complete_election' election.id %}" class="btn btn-warning btn-lg">
-        ✓ Complete Election
-    </a>
-    <a href="{% url 'moderator:dashboard' %}" class="btn btn-secondary btn-lg">
-        Back to Dashboard
-    </a>
 </div>
 
 <script>
@@ -136,9 +313,8 @@ document.querySelectorAll('.winner-select').forEach(select => {
         const partyId = selectedOption.getAttribute('data-party');
         const row = this.closest('tr');
         const partyDisplay = row.querySelector('.party-display');
-        
+
         if (partyId) {
-            // You could fetch party info via AJAX, but for simplicity, just show selected
             partyDisplay.innerHTML = '<span class="badge bg-secondary">Auto-filled</span>';
         } else {
             partyDisplay.innerHTML = '<span class="text-muted">-</span>';
@@ -149,15 +325,15 @@ document.querySelectorAll('.winner-select').forEach(select => {
 function saveAllResults() {
     const results = [];
     const rows = document.querySelectorAll('#resultsTable tbody tr');
-    
+
     rows.forEach(row => {
         const ridingId = row.getAttribute('data-riding-id');
         const winnerSelect = row.querySelector('.winner-select');
         const votesInput = row.querySelector('.votes-input');
-        
+
         const winnerId = winnerSelect.value;
         const votes = votesInput.value;
-        
+
         if (winnerId) {
             results.push({
                 riding_id: ridingId,
@@ -167,13 +343,12 @@ function saveAllResults() {
             });
         }
     });
-    
+
     if (results.length === 0) {
-        alert('No results to save. Please select at least one winner.');
+        alert('No results to save. Run the polling pipeline above or select at least one winner.');
         return;
     }
-    
-    // Save via AJAX
+
     fetch('{% url "moderator:bulk_add_results" election.id %}', {
         method: 'POST',
         headers: {
@@ -196,7 +371,6 @@ function saveAllResults() {
     });
 }
 
-// Save indicator
 let unsavedChanges = false;
 document.querySelectorAll('.winner-select, .votes-input').forEach(input => {
     input.addEventListener('change', () => {
